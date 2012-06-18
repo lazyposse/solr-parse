@@ -1,6 +1,5 @@
 (ns solr-parse.parser
   (:use     [midje.sweet])
-  (:use     [clojure-station.core :as c])
   (:use     [clojure.pprint     :only [pprint pp print-table]])
   (:use     [clojure.string     :only [split join split-lines replace-first] :as s])
   (:use     [clojure.repl       :only [doc find-doc]])
@@ -15,16 +14,18 @@
   (:require [clojure.java.io    :as io])
   (:require [clojure.reflect    :as ref])
   (:require [clojure.inspector  :as ins])
-  (:require [clojure-station.graphviz :as viz])
   (:import  [java.io     File StreamTokenizer]))
+
+(defn esc
+  [s] (s/escape s {\' \"}))
 
 (def example-solr-query "(-w:b AND ((w:\"P\" AND w:\"M\" AND a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\")))")
 
 (def example-solr-query
-  (c/esc "(-w:b AND ((w:'P' AND w:'M' AND a:'a'))) OR (w:b AND -((w:'\nP' AND w:'M' AND a:'a')))"))
+  (esc "(-w:b AND ((w:'P' AND w:'M' AND a:'a'))) OR (w:b AND -((w:'\nP' AND w:'M' AND a:'a')))"))
 
 (def example-solr-query-no-line-break
-  (c/esc "(-w:b AND ((w:'P' AND w:'M' AND a:'a'))) OR (w:b AND -((w:'P' AND w:'M' AND a:'a')))"))
+  (esc "(-w:b AND ((w:'P' AND w:'M' AND a:'a'))) OR (w:b AND -((w:'P' AND w:'M' AND a:'a')))"))
 
 (def p (p/parser {:main :str*}
                  :str      ["\"" :str-word "\""]
