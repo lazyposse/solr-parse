@@ -1,6 +1,5 @@
 (ns solr-parse.eval
   (:use     [midje.sweet])
-  (:use     [clojure-station.core :as c])
   (:use     [clojure.pprint     :only [pprint pp print-table]])
   (:use     [clojure.string     :only [split join split-lines replace-first] :as s])
   (:use     [clojure.repl       :only [doc find-doc]])
@@ -15,7 +14,6 @@
   (:require [clojure.java.io    :as io])
   (:require [clojure.reflect    :as ref])
   (:require [clojure.inspector  :as ins])
-  (:require [clojure-station.graphviz :as viz])
   (:import  [java.io     File StreamTokenizer]))
 
 ;; ala 4 clj ;;;
@@ -78,8 +76,8 @@
   [{c :content}] (mapcat (fn [x] (if-let [r (to-query2 x)]
                                   [r])) c))
 
-(fact (to-query2 q) => '(and (= (m "a") "1")
-                            (= (m "b") "2")))
+(fact "to-query :net.cgrand.parsley/root"
+  (to-query2 q) => '(and (= (m "a") "1")
+                         (= (m "b") "2")))
 
 
-(prn "-------------------")
