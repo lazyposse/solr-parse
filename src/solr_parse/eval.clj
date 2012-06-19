@@ -2,7 +2,7 @@
   (:use     [midje.sweet])
   (:use     [clojure.pprint     :only [pprint pp print-table]])
   (:use     [clojure.string     :only [split join split-lines replace-first] :as s])
-  (:use     [clojure.repl       :only [doc find-doc]])
+  (:use     [clojure.repl       :only [doc find-doc dir]])
   (:use     [clojure.java.javadoc       :only [javadoc]])
   (:use     [clojure.tools.trace :only [trace deftrace trace-forms trace-ns untrace-ns trace-vars]])
   (:use     [clojure.walk       :as w])
@@ -19,65 +19,53 @@
 ;; ala 4 clj ;;;
 ;;; A expression evaluator
 
-(defmulti to-query3 "Dispatch on the :tag flag" (fn [x] (cond (map? x)       (:tag x)
-                                                            (#{"(" ")"} x) :par
-                                                            (s/blank? x)   :blank)))
+(defmulti to-query "Dispatch on the :tag flag"
+  (fn [x] (cond (map? x)       (:tag x)
+               (#{"(" ")"} x) :par
+               (s/blank? x)   :blank)))
 
-(defmethod to-query3 :symbol
+(defmethod to-query :symbol
   [{[x] :content}] x)
 
-(fact (to-query3 {:tag :symbol :content ["a"]}) => "a")
+(fact "to-query :symbol"
+  (to-query {:tag :symbol :content ["a"]}) => "a")
 
-(defmethod to-query3 :key-value
-  [{[{[x] :content} _ y] :content}] (list '= (list 'm x) (to-query3 y)))
+(defmethod to-query :key-value
+  [{[{[x] :content} _ y] :content}] (list '= (list 'm x) (to-query y)))
 
-(fact "to-query3"
-      (to-query3 {:tag :key-value,
+(fact "to-query :key-value"
+      (to-query {:tag :key-value,
                  :content
                  [ {:tag :symbol, :content ["b"]} ":" {:tag :symbol, :content ["2"]}]})
       => '(= (m "b") "2"))
 
-
-(defmethod to-query3 :binary-op
+(defmethod to-query :binary-op
   [{[o] :content}]
   (if-let [r ({"AND" 'and
                "OR"  'or} o)]
     r
     (throw (Exception.))))
 
-(fact (to-query3 {:tag :binary-op, :content ["AND"]}) => 'and)
+(fact "to-query :binary-op"
+  (to-query {:tag :binary-op, :content ["AND"]}) => 'and)
 
-(fact (to-query3 {:tag :binary-op, :content ["OR"]}) => 'or)
+(fact "to-query :binary-op"
+  (to-query {:tag :binary-op, :content ["OR"]}) => 'or)
 
-(fact (to-query3 {:tag :binary-op, :content ["X"]}) => (throws Exception))
+(fact "to-query :binary-op"
+  (to-query {:tag :binary-op, :content ["X"]}) => (throws Exception))
 
-(def q
-{:tag :net.cgrand.parsley/root,
- :content
- ["("
-  {:tag :key-value,
-   :content
-   [{:tag :symbol, :content ["a"]} ":" {:tag :symbol, :content ["1"]}]}
-  " "
-  {:tag :binary-op, :content ["AND"]}
-  " "
-  {:tag :key-value,
-   :content
-   [{:tag :symbol, :content ["b"]} ":" {:tag :symbol, :content ["2"]}]}
-  ")"]})
-
-(defmethod to-query3 :par
+(defmethod to-query :par
   [c] c)
 
-(defmethod to-query3 :blank
+(defmethod to-query :blank
   [_] nil)
 
-(defmethod to-query3 :net.cgrand.parsley/root
-  [{c :content}] (mapcat (fn [x] (if-let [r (to-query3 x)]
-                                  [r])) c))
+(defmethod to-query :root
+  [{c :content}] (map to-query c))
 
 (future-fact "to-query :net.cgrand.parsley/root"
-  (to-query3 q) => '(and (= (m "a") "1")
+  (to-query q) => '(and (= (m "a") "1")
                          (= (m "b") "2")))
 
 (defn transform "Transform the expression into a pol one."
@@ -123,13 +111,13 @@
       (transform ["(" :x :y :z ")"]) => [[:x :y :z]])
 
 (fact
- (transform ["(" :x :y :w "(" :z  ")" ")"]) => [[:x :y :w [:z]]])
+ (transform ["(" :x :y :w "(" :z ")" ")"]) => [[:x :y :w [:z]]])
 
 (future-fact
  (transform ["(" :x "(" :y  ")" :z ")"]) => [[:x [:y] :z]])
 
 (def example-ng
-  {:tag :net.cgrand.parsley/root,
+{:tag :root
  :content
  [{:tag :expr-par,
    :content
@@ -140,16 +128,81 @@
       ":"
       {:tag :symbol, :content ["b"]}]}
     " "
-    {:tag :right-hand,
+    {:tag :binary-op, :content ["OR"]}
+    " "
+    {:tag :key-value,
      :content
-     [{:tag :binary-op, :content ["AND"]}
-      " "
-      {:tag :key-value,
-       :content
-       [{:tag :symbol, :content ["c"]}
-        ":"
-        {:tag :symbol, :content ["d"]}]}]}
+     [{:tag :symbol, :content ["c"]}
+      ":"
+      {:tag :symbol, :content ["d"]}]}
+    " "
+    {:tag :binary-op, :content ["AND"]}
+    " "
+    {:tag :key-value,
+     :content
+     [{:tag :symbol, :content ["e"]}
+      ":"
+      {:tag :symbol, :content ["f"]}]}
     ")"]}]})
 
-(defmethod to-query3 :expr-par
-  [{q :content}] (map to-query3 (remove #{"(" ")" " "} q)))
+(defn and-or
+  [s] (cons 'OR (map (fn [ands] (cons 'AND (remove #{'AND} ands)))
+                     (take-nth 2 (partition-by #{'OR} s)))))
+
+(defn binary-op?
+  [x] (= (:tag x) :binary-op))
+
+(defn and?
+  [x] (and (binary-op? x) (= (:content x ) ["AND"])))
+
+(defn or?
+  [x] (and (binary-op? x) (= (:content x ) ["OR"])))
+
+(defmethod to-query :expr-par
+  [{q :content}] (cons 'or 
+                       (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
+                            (take-nth 2 (partition-by or?
+                                                      (remove #{"(" ")" " "} q))))))
+
+(fact "and-or"
+  (and-or '(0 AND 1 OR 2 OR 3 AND 4 AND 5))
+  => '(OR (AND 0 1) (AND 2) (AND 3 4 5)))
+
+(def example2-src "a:b AND b:c OR e:f AND g:d")
+
+(def example2 {:tag :root,
+               :content
+               [{:tag :expr-par,
+                 :content
+                 ["("
+                  {:tag :key-value,
+                   :content
+                   [{:tag :symbol, :content ["a"]}
+                    ":"
+                    {:tag :symbol, :content ["b"]}]}
+                  " "
+                  {:tag :binary-op, :content ["AND"]}
+                  " "
+                  {:tag :key-value,
+                   :content
+                   [{:tag :symbol, :content ["b"]}
+                    ":"
+                    {:tag :symbol, :content ["c"]}]}
+                  " "
+                  {:tag :binary-op, :content ["OR"]}
+                  " "
+                  {:tag :key-value,
+                   :content
+                   [{:tag :symbol, :content ["e"]}
+                    ":"
+                    {:tag :symbol, :content ["f"]}]}
+                  " "
+                  {:tag :binary-op, :content ["AND"]}
+                  " "
+                  {:tag :key-value,
+                   :content
+                   [{:tag :symbol, :content ["g"]}
+                    ":"
+                    {:tag :symbol, :content ["d"]}]}
+                  ")"]}]})
+
