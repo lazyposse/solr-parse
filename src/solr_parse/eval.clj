@@ -76,8 +76,54 @@
   [{c :content}] (mapcat (fn [x] (if-let [r (to-query2 x)]
                                   [r])) c))
 
-(fact "to-query :net.cgrand.parsley/root"
+(future-fact "to-query :net.cgrand.parsley/root"
   (to-query2 q) => '(and (= (m "a") "1")
                          (= (m "b") "2")))
 
+(defn transform "Transform the expression into a pol one."
+  [v]
+  (loop [[f & r :as all]  v
+         p                []
+         a                []]
+    (if all
+      (cond (= "(" f) (recur r (conj p [])                      a)
+            (= ")" f) (recur r (pop p)                          (conj a (peek p)))
+            :else     (recur r (conj (pop p) (conj (peek p) f)) a))
+      a)))
 
+(defn split-at-last-par
+  [s] (reduce (fn [[h t :as a] i] (cond (seq h)   (update-in a [0] conj i)
+                                       (= ")" i) (update-in a [0] conj i)
+                                       :else     (update-in a [1] conj i)))
+              [() ()]
+              (reverse s)))
+
+(fact "split-at-last-par"
+      (split-at-last-par
+          ["(" :a :b ")"])
+      => [["(" :a :b ")"] []])
+
+(fact "split-at-last-par"
+      (split-at-last-par
+          [:x "(" "(" :a :b ")" ")"   :y])
+      => [[:x "(" "(" :a :b ")" ")"] [:y]])
+
+(fact "split-at-last-par"
+      (split-at-last-par
+           [1 2 "(" 3 ")"   4 5])
+      =>  [[1 2 "(" 3 ")"] [4 5]])
+
+(def par? #{"(" ")"})
+
+(defn transform
+  [[f & r]] (cond (not (par? f)) (cons f (transform r))
+                  (= "(" f)      [(transform r)]))
+
+(fact "ok"
+      (transform ["(" :x :y :z ")"]) => [[:x :y :z]])
+
+(fact
+ (transform ["(" :x :y :w "(" :z  ")" ")"]) => [[:x :y :w [:z]]])
+
+(future-fact
+ (transform ["(" :x "(" :y  ")" :z ")"]) => [[:x [:y] :z]])
