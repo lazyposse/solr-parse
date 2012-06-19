@@ -64,18 +64,19 @@
   (not (re-find #":net.cgrand.parsley/(unexpected|unfinished)"
                 (with-out-str (println p)))))
 
-(def p-expr (p/parser {:main :expr
-                       :space :ws?}
-                      :ws-         #"\s+"
-                      :expr-       #{:key-value ["(" :prefix-op* :expr :right-hand* ")"]}
-                      :right-hand- [:binary-op :prefix-op* :expr]
-                      :key-value   (p/unspaced :symbol ":" :word)
-                      :prefix-op   "-"
-                      :binary-op   #{"AND" "OR"}
-                      :word-       #{:string :symbol}
-                      :symbol      #"[^-\"\s\(\)][^\"\s\(\):]*"
-                      :string      (p/unspaced ["\"" :str-word "\""])
-                      :str-word-    #"(\\\"|[^\"])*"))
+(def p-expr (p/parser {:main :expr, :root-tag :root, :space :ws?}
+                      :ws-             #"\s+"
+                      :expr-           #{:key-value :expr-par :expr-par-simple}
+                      :expr-par-simple ["(" :prefix-op* :expr              ")"]
+                      :expr-par        ["(" :prefix-op* :expr :right-hand+ ")"]
+                      :right-hand-     [:binary-op :prefix-op* :expr]
+                      :key-value       (p/unspaced :symbol ":" :word)
+                      :prefix-op       "-"
+                      :binary-op       #{"AND" "OR"}
+                      :word-           #{:string :symbol}
+                      :symbol          #"[^-\"\s\(\)][^\"\s\(\):]*"
+                      :string          (p/unspaced ["\"" :str-word "\""])
+                      :str-word-       #"(\\\"|[^\"])*"))
 
 (fact "p-expr: good case with strings"
       (parse-ok? (p-expr (esc "(a:'b')")))                         => truthy
