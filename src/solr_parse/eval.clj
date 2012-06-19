@@ -19,37 +19,37 @@
 ;; ala 4 clj ;;;
 ;;; A expression evaluator
 
-(defmulti to-query2 "Dispatch on the :tag flag" (fn [x] (cond (map? x)       (:tag x)
+(defmulti to-query3 "Dispatch on the :tag flag" (fn [x] (cond (map? x)       (:tag x)
                                                             (#{"(" ")"} x) :par
                                                             (s/blank? x)   :blank)))
 
-(defmethod to-query2 :symbol
+(defmethod to-query3 :symbol
   [{[x] :content}] x)
 
-(fact (to-query2 {:tag :symbol :content ["a"]}) => "a")
+(fact (to-query3 {:tag :symbol :content ["a"]}) => "a")
 
-(defmethod to-query2 :key-value
-  [{[{[x] :content} _ y] :content}] (list '= (list 'm x) (to-query2 y)))
+(defmethod to-query3 :key-value
+  [{[{[x] :content} _ y] :content}] (list '= (list 'm x) (to-query3 y)))
 
-(fact "to-query2"
-      (to-query2 {:tag :key-value,
+(fact "to-query3"
+      (to-query3 {:tag :key-value,
                  :content
                  [ {:tag :symbol, :content ["b"]} ":" {:tag :symbol, :content ["2"]}]})
       => '(= (m "b") "2"))
 
 
-(defmethod to-query2 :binary-op
+(defmethod to-query3 :binary-op
   [{[o] :content}]
   (if-let [r ({"AND" 'and
                "OR"  'or} o)]
     r
     (throw (Exception.))))
 
-(fact (to-query2 {:tag :binary-op, :content ["AND"]}) => 'and)
+(fact (to-query3 {:tag :binary-op, :content ["AND"]}) => 'and)
 
-(fact (to-query2 {:tag :binary-op, :content ["OR"]}) => 'or)
+(fact (to-query3 {:tag :binary-op, :content ["OR"]}) => 'or)
 
-(fact (to-query2 {:tag :binary-op, :content ["X"]}) => (throws Exception))
+(fact (to-query3 {:tag :binary-op, :content ["X"]}) => (throws Exception))
 
 (def q
 {:tag :net.cgrand.parsley/root,
@@ -66,18 +66,18 @@
    [{:tag :symbol, :content ["b"]} ":" {:tag :symbol, :content ["2"]}]}
   ")"]})
 
-(defmethod to-query2 :par
+(defmethod to-query3 :par
   [c] c)
 
-(defmethod to-query2 :blank
+(defmethod to-query3 :blank
   [_] nil)
 
-(defmethod to-query2 :net.cgrand.parsley/root
-  [{c :content}] (mapcat (fn [x] (if-let [r (to-query2 x)]
+(defmethod to-query3 :net.cgrand.parsley/root
+  [{c :content}] (mapcat (fn [x] (if-let [r (to-query3 x)]
                                   [r])) c))
 
 (future-fact "to-query :net.cgrand.parsley/root"
-  (to-query2 q) => '(and (= (m "a") "1")
+  (to-query3 q) => '(and (= (m "a") "1")
                          (= (m "b") "2")))
 
 (defn transform "Transform the expression into a pol one."
@@ -127,3 +127,29 @@
 
 (future-fact
  (transform ["(" :x "(" :y  ")" :z ")"]) => [[:x [:y] :z]])
+
+(def example-ng
+  {:tag :net.cgrand.parsley/root,
+ :content
+ [{:tag :expr-par,
+   :content
+   ["("
+    {:tag :key-value,
+     :content
+     [{:tag :symbol, :content ["a"]}
+      ":"
+      {:tag :symbol, :content ["b"]}]}
+    " "
+    {:tag :right-hand,
+     :content
+     [{:tag :binary-op, :content ["AND"]}
+      " "
+      {:tag :key-value,
+       :content
+       [{:tag :symbol, :content ["c"]}
+        ":"
+        {:tag :symbol, :content ["d"]}]}]}
+    ")"]}]})
+
+(defmethod to-query3 :expr-par
+  [{q :content}] (map to-query3 (remove #{"(" ")" " "} q)))

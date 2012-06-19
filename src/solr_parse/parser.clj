@@ -67,8 +67,9 @@
 (def p-expr (p/parser {:main :expr
                        :space :ws?}
                       :ws-         #"\s+"
-                      :expr-       #{:key-value ["(" :prefix-op* :expr :right-hand* ")"]}
-                      :right-hand- [:binary-op :prefix-op* :expr]
+                      :expr-       #{:key-value :expr-par}
+                      :expr-par    ["(" :prefix-op* :expr :right-hand* ")"]
+                      :right-hand  [:binary-op :prefix-op* :expr]
                       :key-value   (p/unspaced :symbol ":" :word)
                       :prefix-op   "-"
                       :binary-op   #{"AND" "OR"}
