@@ -70,10 +70,11 @@
 (def p-expr
   (p/parser {:main :expr, :root-tag :root, :space :ws?}
             :ws-             #"\s+"
-            :expr-           #{:key-value :expr-par :expr-par-simple}
-            :expr-par-simple ["(" :prefix-op* :expr              ")"]
-            :expr-par        ["(" :prefix-op* :expr :right-hand+ ")"]
-            :right-hand-     [:binary-op :prefix-op* :expr]
+            :expr-           #{:key-value :expr-par :expr-par-simple :expr-prefixed}
+            :expr-par-simple ["(" :expr              ")"]
+            :expr-par        ["(" :expr :right-hand+ ")"]
+            :expr-prefixed   [:prefix-op :expr]
+            :right-hand-     [:binary-op :expr]
             :key-value       (p/unspaced :symbol ":" :word)
             :prefix-op       "-"
             :binary-op       #{"AND" "OR"}

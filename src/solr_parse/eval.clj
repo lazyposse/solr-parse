@@ -19,6 +19,8 @@
 ;; ala 4 clj ;;;
 ;;; A expression evaluator
 
+(def to-query +) ;; hack to be able to redifine a multimethod dispatch
+
 (defmulti to-query "Dispatch on the :tag flag"
   (fn [x] (cond (map? x)       (:tag x)
                (#{"(" ")"} x) :par
@@ -56,7 +58,7 @@
   (to-query {:tag :binary-op, :content ["X"]}) => (throws Exception))
 
 (defmethod to-query :par
-  [c] c)
+  [c] nil)
 
 (defmethod to-query :blank
   [_] nil)
@@ -159,7 +161,7 @@
   [x] (and (binary-op? x) (= (:content x ) ["OR"])))
 
 (defmethod to-query :expr-par
-  [{q :content}] (cons 'or
+  [{q :content}] (println "------------- expr-par") (cons 'or
                        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
                             (take-nth 2 (partition-by or?
                                                       (remove #{"(" ")" " "} q))))))
@@ -170,55 +172,171 @@
 
 (def example2-src "a:b AND b:c OR e:f AND g:d")
 
-(def example2 {:tag :root,
-               :content
-               [{:tag :expr-par,
-                 :content
-                 ["("
-                  {:tag :key-value,
-                   :content
-                   [{:tag :symbol, :content ["a"]}
-                    ":"
-                    {:tag :symbol, :content ["b"]}]}
-                  " "
-                  {:tag :binary-op, :content ["AND"]}
-                  " "
-                  {:tag :key-value,
-                   :content
-                   [{:tag :symbol, :content ["b"]}
-                    ":"
-                    {:tag :symbol, :content ["c"]}]}
-                  " "
-                  {:tag :binary-op, :content ["OR"]}
-                  " "
-                  {:tag :key-value,
-                   :content
-                   [{:tag :symbol, :content ["e"]}
-                    ":"
-                    {:tag :symbol, :content ["f"]}]}
-                  " "
-                  {:tag :binary-op, :content ["AND"]}
-                  " "
-                  {:tag :key-value,
-                   :content
-                   [{:tag :symbol, :content ["g"]}
-                    ":"
-                    {:tag :symbol, :content ["d"]}]}
-                  ")"]}]})
+(def example2
+{:tag :root,
+ :content
+ [{:tag :expr-par,
+   :content
+   ["("
+    {:tag :key-value,
+     :content
+     [{:tag :symbol, :content ["a"]}
+      ":"
+      {:tag :symbol, :content ["b"]}]}
+    " "
+    {:tag :binary-op, :content ["AND"]}
+    " "
+    {:tag :key-value,
+     :content
+     [{:tag :symbol, :content ["b"]}
+      ":"
+      {:tag :symbol, :content ["c"]}]}
+    " "
+    {:tag :binary-op, :content ["OR"]}
+    " "
+    {:tag :key-value,
+     :content
+     [{:tag :symbol, :content ["e"]}
+      ":"
+      {:tag :symbol, :content ["f"]}]}
+    " "
+    {:tag :binary-op, :content ["AND"]}
+    " "
+    {:tag :key-value,
+     :content
+     [{:tag :symbol, :content ["g"]}
+      ":"
+      {:tag :symbol, :content ["d"]}]}
+    ")"]}]})
 
 (defmethod to-query :expr-par-simple
-  [{q :content}] (list q))
+  [{q :content}] (map to-query q))
 
-(def example-not {:tag :root,
-                  :content
-                  [{:tag :expr-par-simple,
-                    :content
-                    ["("
-                     {:tag :prefix-op, :content ["-"]}
-                     {:tag :key-value,
-                      :content
-                      [{:tag :symbol, :content ["a"]}
-                       ":"
-                       {:tag :symbol, :content ["b"]}]}
-                     ")"]}]})
+(defmethod to-query :prefix-op
+  [{[q] :content}] (if-let [o ({"-" 'not} q)]
+                     o
+                     (throw (RuntimeException. (str "Unknown prefix operator: " q)))))
+
+(defmethod to-query :expr-prefixed
+  [{q :content}]
+  {:pre [(= 2 (count q))]}
+  (list (to-query (first  q))
+        (to-query (second q))))
+
+(def example-not-src "-a:b")
+
+(def example-not
+  {:tag :root,
+   :content
+   [{:tag :expr-par-simple,
+     :content
+     ["("
+      {:tag :expr-prefixed,
+       :content
+       [{:tag :prefix-op, :content ["-"]}
+        {:tag :key-value,
+         :content
+         [{:tag :symbol, :content ["a"]}
+          ":"
+          {:tag :symbol, :content ["b"]}]}]}
+      ")"]}]})
+
+(def example-big
+  {:tag :root,
+   :content
+   [{:tag :expr-par,
+     :content
+     ["("
+      {:tag :expr-par,
+       :content
+       ["("
+        {:tag :expr-prefixed,
+         :content
+         [{:tag :prefix-op, :content ["-"]}
+          {:tag :key-value,
+           :content
+           [{:tag :symbol, :content ["w"]}
+            ":"
+            {:tag :symbol, :content ["b"]}]}]}
+        " "
+        {:tag :binary-op, :content ["AND"]}
+        " "
+        {:tag :expr-par-simple,
+         :content
+         ["("
+          {:tag :expr-par,
+           :content
+           ["("
+            {:tag :key-value,
+             :content
+             [{:tag :symbol, :content ["w"]}
+              ":"
+              {:tag :string, :content ["\"" "P" "\""]}]}
+            " "
+            {:tag :binary-op, :content ["AND"]}
+            " "
+            {:tag :key-value,
+             :content
+             [{:tag :symbol, :content ["w"]}
+              ":"
+              {:tag :string, :content ["\"" "M" "\""]}]}
+            " "
+            {:tag :binary-op, :content ["AND"]}
+            " "
+            {:tag :key-value,
+             :content
+             [{:tag :symbol, :content ["a"]}
+              ":"
+              {:tag :string, :content ["\"" "a" "\""]}]}
+            ")"]}
+          ")"]}
+        ")"]}
+      " "
+      {:tag :binary-op, :content ["OR"]}
+      " "
+      {:tag :expr-par,
+       :content
+       ["("
+        {:tag :key-value,
+         :content
+         [{:tag :symbol, :content ["w"]}
+          ":"
+          {:tag :symbol, :content ["b"]}]}
+        " "
+        {:tag :binary-op, :content ["AND"]}
+        " "
+        {:tag :expr-prefixed,
+         :content
+         [{:tag :prefix-op, :content ["-"]}
+          {:tag :expr-par-simple,
+           :content
+           ["("
+            {:tag :expr-par,
+             :content
+             ["("
+              {:tag :key-value,
+               :content
+               [{:tag :symbol, :content ["w"]}
+                ":"
+                {:tag :string, :content ["\"" "\nP" "\""]}]}
+              " "
+              {:tag :binary-op, :content ["AND"]}
+              " "
+              {:tag :key-value,
+               :content
+               [{:tag :symbol, :content ["w"]}
+                ":"
+                {:tag :string, :content ["\"" "M" "\""]}]}
+              " "
+              {:tag :binary-op, :content ["AND"]}
+              " "
+              {:tag :key-value,
+               :content
+               [{:tag :symbol, :content ["a"]}
+                ":"
+                {:tag :string, :content ["\"" "a" "\""]}]}
+              ")"]}
+            ")"]}]}
+        ")"]}
+      ")"]}]})
 
