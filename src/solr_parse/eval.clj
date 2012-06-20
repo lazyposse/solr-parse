@@ -159,7 +159,7 @@
   [x] (and (binary-op? x) (= (:content x ) ["OR"])))
 
 (defmethod to-query :expr-par
-  [{q :content}] (cons 'or 
+  [{q :content}] (cons 'or
                        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
                             (take-nth 2 (partition-by or?
                                                       (remove #{"(" ")" " "} q))))))
@@ -205,4 +205,20 @@
                     ":"
                     {:tag :symbol, :content ["d"]}]}
                   ")"]}]})
+
+(defmethod to-query :expr-par-simple
+  [{q :content}] (list q))
+
+(def example-not {:tag :root,
+                  :content
+                  [{:tag :expr-par-simple,
+                    :content
+                    ["("
+                     {:tag :prefix-op, :content ["-"]}
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["a"]}
+                       ":"
+                       {:tag :symbol, :content ["b"]}]}
+                     ")"]}]})
 
