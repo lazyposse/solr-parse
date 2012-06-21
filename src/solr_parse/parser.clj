@@ -19,7 +19,8 @@
 (defn esc
   [s] (s/escape s {\' \"}))
 
-(def example-solr-query "(-w:b AND ((w:\"P\" AND w:\"M\" AND a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\")))")
+(def example-solr-query
+  "(-w:b AND ((w:\"P\" AND w:\"M\" AND a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\")))")
 
 (def example-solr-query
   (esc "(-w:b AND ((w:'P' AND w:'M' AND a:'a'))) OR (w:b AND -((w:'\nP' AND w:'M' AND a:'a')))"))
@@ -32,14 +33,15 @@
                  :str-word #{#"([a-z]|\\\")+"}))
 
 (def p-key (p/parser {:main :symbol*}
-                        :symbol #"[^-\"\s\(\)][^\"\s\(\):]*"))
+                     :symbol #"[^-\"\s\(\)][^\"\s\(\):]*"))
 
 (fact "p-symbol"
- (get-in (p "a-b") [:content 0 :content]) => ["a-b"])
+  (get-in (p "a-b") [:content 0 :content]) => ["a-b"])
 
-(def p-string (p/parser {:main :string*}
-                        :string ["\"" :str-word "\""]
-                        :str-word #"(\\\"|[^\"])*"))
+(def p-string
+  (p/parser {:main :string*}
+            :string ["\"" :str-word "\""]
+            :str-word #"(\\\"|[^\"])*"))
 
 (fact "p-string"
       (get-in (p-string "\"a-b\"") [:content 0 :content 1 :content]) => ["a-b"])
@@ -47,13 +49,14 @@
 (fact "p-string: with quote"
       (get-in (p-string "\"a\\\"b\"") [:content 0 :content 1 :content]) => ["a\\\"b"])
 
-(def p-key-value (p/parser {:main :key-value*}
-                             :key-value [:prefix-op* :symbol ":" :word]
-                             :prefix-op   "-"
-                             :word-        #{:string :symbol}
-                             :symbol      #"[^-\"\s\(\)][^\"\s\(\):]*"
-                             :string      ["\"" :str-word "\""]
-                             :str-word    #"(\\\"|[^\"])*"))
+(def p-key-value
+  (p/parser {:main :key-value*}
+            :key-value [:prefix-op* :symbol ":" :word]
+            :prefix-op   "-"
+            :word-        #{:string :symbol}
+            :symbol      #"[^-\"\s\(\)][^\"\s\(\):]*"
+            :string      ["\"" :str-word "\""]
+            :str-word    #"(\\\"|[^\"])*"))
 
 (fact "p-key-value"
       (get-in (p-key-value "a:b") [:content 0 :content 0 :content 0]) => "a"
@@ -64,19 +67,21 @@
   (not (re-find #":net.cgrand.parsley/(unexpected|unfinished)"
                 (with-out-str (println p)))))
 
-(def p-expr (p/parser {:main :expr, :root-tag :root, :space :ws?}
-                      :ws-             #"\s+"
-                      :expr-           #{:key-value :expr-par :expr-par-simple}
-                      :expr-par-simple ["(" :prefix-op* :expr              ")"]
-                      :expr-par        ["(" :prefix-op* :expr :right-hand+ ")"]
-                      :right-hand-     [:binary-op :prefix-op* :expr]
-                      :key-value       (p/unspaced :symbol ":" :word)
-                      :prefix-op       "-"
-                      :binary-op       #{"AND" "OR"}
-                      :word-           #{:string :symbol}
-                      :symbol          #"[^-\"\s\(\)][^\"\s\(\):]*"
-                      :string          (p/unspaced ["\"" :str-word "\""])
-                      :str-word-       #"(\\\"|[^\"])*"))
+(def p-expr
+  (p/parser {:main :expr, :root-tag :root, :space :ws?}
+            :ws-             #"\s+"
+            :expr-           #{:key-value :expr-par :expr-par-simple :expr-prefixed}
+            :expr-par-simple ["(" :expr              ")"]
+            :expr-par        ["(" :expr :right-hand+ ")"]
+            :expr-prefixed   [:prefix-op :expr]
+            :right-hand-     [:binary-op :expr]
+            :key-value       (p/unspaced :symbol ":" :word)
+            :prefix-op       "-"
+            :binary-op       #{"AND" "OR"}
+            :word-           #{:string :symbol}
+            :symbol          #"[^-\"\s\(\)][^\"\s\(\):]*"
+            :string          (p/unspaced ["\"" :str-word "\""])
+            :str-word-       #"(\\\"|[^\"])*"))
 
 (fact "p-expr: good case with strings"
       (parse-ok? (p-expr (esc "(a:'b')")))                         => truthy
@@ -117,13 +122,14 @@
 (defn parse-solr
   [s] (p-expr (str "(" s ")")))
 
-(def input-tree {:tag :net.cgrand.parsley/root,
-                 :content
-                 ["("
-                  {:tag :key-value,
-                   :content
-                   [{:tag :symbol, :content ["a"]} ":" {:tag :symbol, :content ["b"]}]}
-                  ")"]})
+(def input-tree
+  {:tag :net.cgrand.parsley/root,
+   :content
+   ["("
+    {:tag :key-value,
+     :content
+     [{:tag :symbol, :content ["a"]} ":" {:tag :symbol, :content ["b"]}]}
+    ")"]})
 
 (defn my-pred
   ""
