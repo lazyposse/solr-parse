@@ -161,7 +161,19 @@
   [{q :content}] (cons 'or
                        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
                             (take-nth 2 (partition-by or?
-                                                      (remove #{"(" ")" " "} q))))))
+                                                      (remove #{"(" ")" " "} (trace q)))))))
+
+(defmethod to-query :expr-par
+  [{q :content}]
+  (if (some or? q)
+    (map (fn [x] (let [xx (to-query x)]
+                  (if (and (sequential? xx) (second xx))
+                    xx
+                    (first xx))))
+         (take-nth 2 (partition-by or? q)))
+    s))
+
+
 
 (defn and-or
   [s] (cons 'OR (map (fn [ands] (cons 'AND (remove #{'AND} ands)))
@@ -203,7 +215,7 @@
 
 (defn or-ify
   [s]
-  (if  (some #{'OR} s)
+  (if (some #{'OR} s)
     (cons 'or (map (fn [x] (if (and (sequential? x) (second x))
                             x
                             (first x)))
