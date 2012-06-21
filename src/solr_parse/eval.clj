@@ -7,6 +7,7 @@
   (:use     [clojure.tools.trace :only [trace deftrace trace-forms trace-ns untrace-ns trace-vars]])
   (:use     [clojure.walk       :as w])
   (:use     [net.cgrand.parsley       :as p])
+  (:use     [solr-parse.parser  :only [parse-solr]])
   (:require [clojure.xml        :as xml])
   (:require [clojure.set        :as set])
   (:require [clj-http.client    :as client])
@@ -27,13 +28,13 @@
                (s/blank? x)   :blank)))
 
 (defmethod to-query :symbol
-  [{[x] :content}] x)
+  [{[x] :content}] (keyword x))
 
 (fact "to-query :symbol"
   (to-query {:tag :symbol :content ["a"]}) => "a")
 
 (defmethod to-query :key-value
-  [{[{[x] :content} _ y] :content}] (list '= (list 'm x) (to-query y)))
+  [{[x _ y] :content}] (list '= (list 'm (to-query x)) (to-query y)))
 
 (fact "to-query :key-value"
       (to-query {:tag :key-value,
@@ -147,9 +148,6 @@
       {:tag :symbol, :content ["f"]}]}
     ")"]}]})
 
-(defn and-or
-  [s] (cons 'OR (map (fn [ands] (cons 'AND (remove #{'AND} ands)))
-                     (take-nth 2 (partition-by #{'OR} s)))))
 
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
@@ -161,14 +159,40 @@
   [x] (and (binary-op? x) (= (:content x ) ["OR"])))
 
 (defmethod to-query :expr-par
-  [{q :content}] (println "------------- expr-par") (cons 'or
+  [{q :content}] (cons 'or
                        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
                             (take-nth 2 (partition-by or?
                                                       (remove #{"(" ")" " "} q))))))
 
+(defn and-or
+  [s] (cons 'OR (map (fn [ands] (cons 'AND (remove #{'AND} ands)))
+                     (take-nth 2 (partition-by #{'OR} s)))))
+
+(future-fact "and-or: only and"
+  (and-or '(0 AND 1))
+  => '(AND 0 1))
+
+(future-fact "and-or: only or"
+  (and-or '(0 AND 1))
+  => '(AND 0 1))
+
 (fact "and-or"
   (and-or '(0 AND 1 OR 2 OR 3 AND 4 AND 5))
   => '(OR (AND 0 1) (AND 2) (AND 3 4 5)))
+
+(fact "and-or"
+  (and-or '(0 AND 1 OR 2 OR 3 AND 4 AND 5))
+  => '(OR (AND 0 1) (AND 2) (AND 3 4 5)))
+
+(defn and-ify
+  [s] (reduce (fn [r i] )
+       []
+       s))
+
+(fact "and-ify"
+  (and-ify '(0 AND 1 OR 2 OR 3 AND 4 AND 5))
+  => '((0 AND 1) OR 2 OR (3 AND 4 AND 5)))
+
 
 (def example2-src "a:b AND b:c OR e:f AND g:d")
 
@@ -239,6 +263,22 @@
          [{:tag :symbol, :content ["a"]}
           ":"
           {:tag :symbol, :content ["b"]}]}]}
+      ")"]}]})
+
+(defmethod to-query :string
+  [{[_ q _] :content}] q)
+
+(def example-str
+  {:tag :root,
+   :content
+   [{:tag :expr-par-simple,
+     :content
+     ["("
+      {:tag :key-value,
+       :content
+       [{:tag :symbol, :content ["a"]}
+        ":"
+        {:tag :string, :content ["\"" "b" "\""]}]}
       ")"]}]})
 
 (def example-big
