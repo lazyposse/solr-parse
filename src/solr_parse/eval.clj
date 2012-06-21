@@ -202,12 +202,13 @@
   (and-ify '(0 AND 1 AND 2)) => '(and 0 1 2))
 
 (defn or-ify
-  [s] (if (some #{'OR} s)
-        (cons 'or (map (fn [x] (if (and (sequential? x) (nil? (second x)))
-                                (first x)
-                                x))
+  [s]
+  (if  (some #{'OR} s)
+    (cons 'or (map (fn [x] (if (and (sequential? x) (second x))
+                            x
+                            (first x)))
                    (take-nth 2 (partition-by #{'OR} s))))
-        s))
+    s))
 
 (fact "or-ify: no or"
   (or-ify '(a AND b))
