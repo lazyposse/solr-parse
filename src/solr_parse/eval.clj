@@ -6,8 +6,7 @@
   (:use     [clojure.java.javadoc       :only [javadoc]])
   (:use     [clojure.tools.trace :only [trace deftrace trace-forms trace-ns untrace-ns trace-vars]])
   (:use     [clojure.walk       :as w])
-  (:use     [net.cgrand.parsley       :as p])
-  (:use     [solr-parse.parser  :only [parse-solr]])
+  (:use     [solr-parse.parser  :only [parse-solr example-solr-query]])
   (:require [clojure.xml        :as xml])
   (:require [clojure.set        :as set])
   (:require [clj-http.client    :as client])
@@ -185,14 +184,38 @@
   => '(OR (AND 0 1) (AND 2) (AND 3 4 5)))
 
 (defn and-ify
-  [s] (reduce (fn [r i] )
-       []
-       s))
+  [s]
+  (if (and (sequential? s) (some #{'AND} s))
+    (cons 'and (remove #{'AND} s))
+    s))
 
 (fact "and-ify"
-  (and-ify '(0 AND 1 OR 2 OR 3 AND 4 AND 5))
-  => '((0 AND 1) OR 2 OR (3 AND 4 AND 5)))
+  (and-ify '(0)) => '(0))
 
+(fact "and-ify"
+  (and-ify 0) => 0)
+
+(fact "and-ify"
+  (and-ify '(0 AND 1)) => '(and 0 1))
+
+(fact "and-ify"
+  (and-ify '(0 AND 1 AND 2)) => '(and 0 1 2))
+
+(defn or-ify
+  [s] (if (some #{'OR} s)
+        (cons 'or (map (fn [x] (if (and (sequential? x) (nil? (second x)))
+                                (first x)
+                                x))
+                   (take-nth 2 (partition-by #{'OR} s))))
+        s))
+
+(fact "or-ify: no or"
+  (or-ify '(a AND b))
+  => '(a AND b))
+
+(fact "or-ify"
+  (or-ify '(a OR b AND c OR d))
+  => '(or a (b AND c) d))
 
 (def example2-src "a:b AND b:c OR e:f AND g:d")
 
