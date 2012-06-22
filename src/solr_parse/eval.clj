@@ -30,7 +30,7 @@
   [{[x] :content}] (keyword x))
 
 (fact "to-query :symbol"
-  (to-query {:tag :symbol :content ["a"]}) => "a")
+  (to-query {:tag :symbol :content ["a"]}) => :a)
 
 (defmethod to-query :key-value
   [{[x _ y] :content}] (list '= (list 'm (to-query x)) (to-query y)))
@@ -39,7 +39,7 @@
       (to-query {:tag :key-value,
                  :content
                  [ {:tag :symbol, :content ["b"]} ":" {:tag :symbol, :content ["2"]}]})
-      => '(= (m "b") "2"))
+      => '(= (m :b) :2))
 
 (defmethod to-query :binary-op
   [{[o] :content}]
@@ -164,14 +164,7 @@
                                                       (remove #{"(" ")" " "} (trace q)))))))
 
 (defmethod to-query :expr-par
-  [{q :content}]
-  (if (some or? q)
-    (map (fn [x] (let [xx (to-query x)]
-                  (if (and (sequential? xx) (second xx))
-                    xx
-                    (first xx))))
-         (take-nth 2 (partition-by or? q)))
-    s))
+  [{q :content}] q)
 
 
 
