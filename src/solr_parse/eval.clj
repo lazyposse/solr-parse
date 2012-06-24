@@ -52,23 +52,17 @@
     (throw (Exception.))))
 
 (fact "to-query :binary-op"
-  (to-query {:tag :binary-op, :content ["AND"]}) => 'and)
-
-(fact "to-query :binary-op"
-  (to-query {:tag :binary-op, :content ["OR"]}) => 'or)
-
-(fact "to-query :binary-op"
+  (to-query {:tag :binary-op, :content ["AND"]}) => 'and
+  (to-query {:tag :binary-op, :content ["OR"]}) => 'or
   (to-query {:tag :binary-op, :content ["X"]}) => (throws Exception))
 
 (defmethod to-query :root
   [{c :content}] (map to-query c))
 
-(future-fact "to-query :net.cgrand.parsley/root"
-  (to-query q) => '(and (= (m "a") "1")
-                         (= (m "b") "2")))
-
-(defn binary-op?
-  [x] (= (:tag x) :binary-op))
+(fact "to-query :root -> need to improve it."
+  (let [q {:tag :root,
+           :content []}]
+    (to-query q) => '()))
 
 (defn and-ify
   [s]
