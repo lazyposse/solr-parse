@@ -169,12 +169,29 @@
     (to-query example2) => '((or (and (= (m :a) :b) (= (m :b) :c)) (and (= (m :e) :f) (= (m :g) :d))))))
 
 (defmethod to-query :expr-par-simple
-  [{q :content}] (map to-query q))
+  [{q :content}]
+  (map to-query (remove #{"(" ")"} q)))
+
+(fact
+  (let [q {:tag :expr-par-simple,
+     :content
+     ["("
+      {:tag :key-value,
+       :content
+       [{:tag :symbol, :content ["a"]}
+        ":"
+        {:tag :symbol, :content ["b"]}]}
+      ")"]}]
+    (to-query q)) => '((= (m :a) :b)))
 
 (defmethod to-query :prefix-op
   [{[q] :content}] (if-let [o ({"-" 'not} q)]
                      o
                      (throw (RuntimeException. (str "Unknown prefix operator: " q)))))
+
+(fact "to-query :prefix-op"
+  (to-query {:tag :prefix-op, :content ["-"]}) => 'not
+  (to-query {:tag :prefix-op, :content [:a]}) => (throws RuntimeException))
 
 (defmethod to-query :expr-prefixed
   [{q :content}]
@@ -182,7 +199,18 @@
   (list (to-query (first  q))
         (to-query (second q))))
 
-(future-fact "-a:b"
+(fact "to-query - expr-prefixed"
+  (let [q {:tag :expr-prefixed,
+           :content
+           [{:tag :prefix-op, :content ["-"]}
+            {:tag :key-value,
+             :content
+             [{:tag :symbol, :content ["a"]}
+              ":"
+              {:tag :symbol, :content ["b"]}]}]}]
+    (to-query q) => '(not (= (m :a) :b))))
+
+(fact "-a:b"
   (let [example-not {:tag :root,
                      :content
                      [{:tag :expr-par-simple,
@@ -197,10 +225,13 @@
                             ":"
                             {:tag :symbol, :content ["b"]}]}]}
                         ")"]}]}]
-    (to-query example-not) => '((not (= (m :a) :b)))))
+    (to-query example-not) => '(((not (= (m :a) :b))))))
 
 (defmethod to-query :string
   [{[_ q _] :content}] q)
+
+(fact "to-query :string"
+  (to-query {:tag :string, :content ["\"" "a" "\""]}) => "a")
 
 (def example-str
   {:tag :root,
