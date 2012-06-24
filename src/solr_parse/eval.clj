@@ -29,6 +29,12 @@
 (fact "to-query :symbol"
   (to-query {:tag :symbol :content ["a"]}) => :a)
 
+(defmethod to-query :string
+  [{[_ q _] :content}] q)
+
+(fact "to-query :string"
+  (to-query {:tag :string, :content ["\"" "a" "\""]}) => "a")
+
 (defmethod to-query :default
   [x] x)
 
@@ -63,16 +69,12 @@
 (fact "to-query :root"
   (let [q {:tag :root,
            :content
-           [{:tag :expr-par-simple,
+           [{:tag :key-value,
              :content
-             ["("
-              {:tag :key-value,
-               :content
-               [{:tag :symbol, :content ["a"]}
-                ":"
-                {:tag :string, :content ["\"" "b" "\""]}]}
-              ")"]}]}]
-    (to-query q) => '(((= (m :a) "b")))))
+             [{:tag :symbol, :content ["a"]}
+              ":"
+              {:tag :string, :content ["\"" "b" "\""]}]}]}]
+    (to-query q) => '((= (m :a) "b"))))
 
 (defn and-ify
   [s]
@@ -113,7 +115,7 @@
 (fact "a:b OR c:d AND e:f"
   (let [example-ng {:tag :root
                     :content
-                    [{:tag :expr-par,
+                    [{:tag :expr-par
                       :content
                       ["("
                        {:tag :key-value,
@@ -180,18 +182,18 @@
 
 (defmethod to-query :expr-par-simple
   [{q :content}]
-  (map to-query (remove #{"(" ")"} q)))
+  (binary-ify (map to-query (remove #{"(" ")"} q))))
 
-(fact
+(fact "to-query :expr-par-simple"
   (let [q {:tag :expr-par-simple,
-     :content
-     ["("
-      {:tag :key-value,
-       :content
-       [{:tag :symbol, :content ["a"]}
-        ":"
-        {:tag :symbol, :content ["b"]}]}
-      ")"]}]
+           :content
+           ["("
+            {:tag :key-value,
+             :content
+             [{:tag :symbol, :content ["a"]}
+              ":"
+              {:tag :symbol, :content ["b"]}]}
+            ")"]}]
     (to-query q)) => '((= (m :a) :b)))
 
 (defmethod to-query :prefix-op
@@ -236,12 +238,6 @@
                             {:tag :symbol, :content ["b"]}]}]}
                         ")"]}]}]
     (to-query example-not) => '(((not (= (m :a) :b))))))
-
-(defmethod to-query :string
-  [{[_ q _] :content}] q)
-
-(fact "to-query :string"
-  (to-query {:tag :string, :content ["\"" "a" "\""]}) => "a")
 
 (future-fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
   (let [q {:tag :root,
