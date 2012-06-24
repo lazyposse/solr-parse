@@ -125,22 +125,6 @@
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
 
-(defn and?
-  [x] (and (binary-op? x) (= (:content x ) ["AND"])))
-
-(fact
-  (and? {:tag :binary-op, :content ["AND"]}) => true
-  (and? {:tag :binary-op, :content ["OR"]}) => false
-  (and? {:tag :symbol, :content ["a"]}) => false)
-
-(defn or?
-  [x] (and (binary-op? x) (= (:content x ) ["OR"])))
-
-(fact
-  (or? {:tag :binary-op, :content ["OR"]}) => true
-  (or? {:tag :binary-op, :content ["AND"]}) => false
-  (or? {:tag :symbol, :content ["a"]}) => false)
-
 (def and? #{'and})
 (def or? #{'or})
 
