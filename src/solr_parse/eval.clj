@@ -57,12 +57,22 @@
   (to-query {:tag :binary-op, :content ["X"]}) => (throws Exception))
 
 (defmethod to-query :root
-  [{c :content}] (map to-query c))
+  [{c :content}]
+  (map to-query c))
 
-(fact "to-query :root -> need to improve it."
+(fact "to-query :root"
   (let [q {:tag :root,
-           :content []}]
-    (to-query q) => '()))
+           :content
+           [{:tag :expr-par-simple,
+             :content
+             ["("
+              {:tag :key-value,
+               :content
+               [{:tag :symbol, :content ["a"]}
+                ":"
+                {:tag :string, :content ["\"" "b" "\""]}]}
+              ")"]}]}]
+    (to-query q) => '(((= (m :a) "b")))))
 
 (defn and-ify
   [s]
@@ -232,19 +242,6 @@
 
 (fact "to-query :string"
   (to-query {:tag :string, :content ["\"" "a" "\""]}) => "a")
-
-(def example-str
-  {:tag :root,
-   :content
-   [{:tag :expr-par-simple,
-     :content
-     ["("
-      {:tag :key-value,
-       :content
-       [{:tag :symbol, :content ["a"]}
-        ":"
-        {:tag :string, :content ["\"" "b" "\""]}]}
-      ")"]}]})
 
 (def example-big
   {:tag :root,
