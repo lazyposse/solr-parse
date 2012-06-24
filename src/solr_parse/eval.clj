@@ -29,6 +29,13 @@
 (fact "to-query :symbol"
   (to-query {:tag :symbol :content ["a"]}) => :a)
 
+(defmethod to-query :default
+  [x] x)
+
+(fact "to-query unidentified symbol return the symbol as is."
+  (to-query 'or) => 'or
+  (to-query 'and) => 'and)
+
 (defmethod to-query :key-value
   [{[x _ y] :content}] (list '= (list 'm (to-query x)) (to-query y)))
 
