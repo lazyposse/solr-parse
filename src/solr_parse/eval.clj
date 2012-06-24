@@ -189,23 +189,22 @@
   (list (to-query (first  q))
         (to-query (second q))))
 
-(def example-not-src "-a:b")
-
-(def example-not
-  {:tag :root,
-   :content
-   [{:tag :expr-par-simple,
-     :content
-     ["("
-      {:tag :expr-prefixed,
-       :content
-       [{:tag :prefix-op, :content ["-"]}
-        {:tag :key-value,
-         :content
-         [{:tag :symbol, :content ["a"]}
-          ":"
-          {:tag :symbol, :content ["b"]}]}]}
-      ")"]}]})
+(future-fact "-a:b"
+  (let [example-not {:tag :root,
+                     :content
+                     [{:tag :expr-par-simple,
+                       :content
+                       ["("
+                        {:tag :expr-prefixed,
+                         :content
+                         [{:tag :prefix-op, :content ["-"]}
+                          {:tag :key-value,
+                           :content
+                           [{:tag :symbol, :content ["a"]}
+                            ":"
+                            {:tag :symbol, :content ["b"]}]}]}
+                        ")"]}]}]
+    (to-query example-not) => '((not (= (m :a) :b)))))
 
 (defmethod to-query :string
   [{[_ q _] :content}] q)
