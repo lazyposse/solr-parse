@@ -228,7 +228,7 @@
 (fact "or-ify: no or"
   (or-ify '(a
             {:tag :binary-op, :content ["AND"]}
-p            b))
+            b))
   => '(a {:tag :binary-op, :content ["AND"]} b))
 
 (fact "or-ify"
