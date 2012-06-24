@@ -227,6 +227,15 @@ p            b))
   (or-ify '(a {:tag :binary-op, :content ["OR"]} b {:tag :binary-op, :content ["AND"]} c {:tag :binary-op, :content ["OR"]} d))
   => '(or a (b {:tag :binary-op, :content ["AND"]} c) d))
 
+
+(defn binary-ify
+  [s]
+  (map and-ify (or-ify s)))
+
+(fact "binary-ify"
+  (binary-ify '(a {:tag :binary-op, :content ["OR"]} b {:tag :binary-op, :content ["AND"]} c {:tag :binary-op, :content ["OR"]} d))
+  => '(or a (and b c) d))
+
 (def example2-src "a:b AND b:c OR e:f AND g:d")
 
 (def example2
