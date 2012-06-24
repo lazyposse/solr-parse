@@ -227,7 +227,6 @@ p            b))
   (or-ify '(a {:tag :binary-op, :content ["OR"]} b {:tag :binary-op, :content ["AND"]} c {:tag :binary-op, :content ["OR"]} d))
   => '(or a (b {:tag :binary-op, :content ["AND"]} c) d))
 
-
 (defn binary-ify
   [s]
   (map and-ify (or-ify s)))
