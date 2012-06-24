@@ -210,20 +210,22 @@
 
 (defn or-ify
   [s]
-  (if (some #{'OR} s)
+  (if (some or? s)
     (cons 'or (map (fn [x] (if (and (sequential? x) (second x))
                             x
                             (first x)))
-                   (take-nth 2 (partition-by #{'OR} s))))
+                   (take-nth 2 (partition-by or? s))))
     s))
 
 (fact "or-ify: no or"
-  (or-ify '(a AND b))
-  => '(a AND b))
+  (or-ify '(a
+            {:tag :binary-op, :content ["AND"]}
+p            b))
+  => '(a {:tag :binary-op, :content ["AND"]} b))
 
 (fact "or-ify"
-  (or-ify '(a OR b AND c OR d))
-  => '(or a (b AND c) d))
+  (or-ify '(a {:tag :binary-op, :content ["OR"]} b {:tag :binary-op, :content ["AND"]} c {:tag :binary-op, :content ["OR"]} d))
+  => '(or a (b {:tag :binary-op, :content ["AND"]} c) d))
 
 (def example2-src "a:b AND b:c OR e:f AND g:d")
 
