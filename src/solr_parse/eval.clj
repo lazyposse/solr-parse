@@ -122,35 +122,6 @@
 (future-fact
  (transform ["(" :x "(" :y  ")" :z ")"]) => [[:x [:y] :z]])
 
-(def example-ng
-{:tag :root
- :content
- [{:tag :expr-par,
-   :content
-   ["("
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["a"]}
-      ":"
-      {:tag :symbol, :content ["b"]}]}
-    " "
-    {:tag :binary-op, :content ["OR"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["c"]}
-      ":"
-      {:tag :symbol, :content ["d"]}]}
-    " "
-    {:tag :binary-op, :content ["AND"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["e"]}
-      ":"
-      {:tag :symbol, :content ["f"]}]}
-    ")"]}]})
-
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
 
@@ -172,13 +143,37 @@
 
 (defmethod to-query :expr-par
   [{q :content}]
-  (cons 'or
-        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
-             (take-nth 2 (partition-by or?
-                                       (remove #{"(" ")" " "} q))))))
+  (binary-ify (remove #{"(" ")" " "} (map to-query q))))
 
 (fact
-  (to-query example-ng) => '((or (and (= (m :a) :b)) (and (= (m :c) :d) (= (m :e) :f)))))
+  (let [example-ng {:tag :root
+                    :content
+                    [{:tag :expr-par,
+                      :content
+                      ["("
+                       {:tag :key-value,
+                        :content
+                        [{:tag :symbol, :content ["a"]}
+                         ":"
+                         {:tag :symbol, :content ["b"]}]}
+                       " "
+                       {:tag :binary-op, :content ["OR"]}
+                       " "
+                       {:tag :key-value,
+                        :content
+                        [{:tag :symbol, :content ["c"]}
+                         ":"
+                         {:tag :symbol, :content ["d"]}]}
+                       " "
+                       {:tag :binary-op, :content ["AND"]}
+                       " "
+                       {:tag :key-value,
+                        :content
+                        [{:tag :symbol, :content ["e"]}
+                         ":"
+                         {:tag :symbol, :content ["f"]}]}
+                       ")"]}]}]
+    (to-query example-ng) => '((or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f))))))
 
 (defn and-ify
   [s]
