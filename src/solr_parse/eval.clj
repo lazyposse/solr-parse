@@ -125,13 +125,10 @@
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
 
-(def and? #{'and})
-(def or? #{'or})
-
 (defn and-ify
   [s]
-  (if (and (sequential? s) (some and? s))
-    (cons 'and (remove and? s))
+  (if (and (sequential? s) (some #{'and} s))
+    (cons 'and (remove #{'and} s))
     s))
 
 (fact "and-ify"
@@ -148,11 +145,11 @@
 
 (defn or-ify
   [s]
-  (if (some or? s)
+  (if (some #{'or} s)
     (cons 'or (map (fn [x] (if (and (sequential? x) (second x))
                             x
                             (first x)))
-                   (take-nth 2 (partition-by or? s))))
+                   (take-nth 2 (partition-by #{'or} s))))
     s))
 
 (fact "or-ify: no or"
