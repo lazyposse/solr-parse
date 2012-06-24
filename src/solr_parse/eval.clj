@@ -78,15 +78,9 @@
     s))
 
 (fact "and-ify"
-  (and-ify '(0)) => '(0))
-
-(fact "and-ify"
-  (and-ify 0) => 0)
-
-(fact "and-ify"
-  (and-ify '(0 and 1)) => '(and 0 1))
-
-(fact "and-ify"
+  (and-ify '(0)) => '(0)
+  (and-ify 0) => 0
+  (and-ify '(0 and 1)) => '(and 0 1)
   (and-ify '(0 and 1 and 2)) => '(and 0 1 2))
 
 (defn or-ify
@@ -99,26 +93,21 @@
     s))
 
 (fact "or-ify: no or"
-  (or-ify '(a and b))
-  => '(a and b))
-
-(fact "or-ify"
-  (or-ify '(a or b and c or d))
-  => '(or a (b and c) d))
+  (or-ify '(a and b)) => '(a and b)
+  (or-ify '(a or b and c or d)) => '(or a (b and c) d))
 
 (defn binary-ify
   [s]
   (map and-ify (or-ify s)))
 
 (fact "binary-ify"
-  (binary-ify '(a or b and c or d))
-  => '(or a (and b c) d))
+  (binary-ify '(a or b and c or d)) => '(or a (and b c) d))
 
 (defmethod to-query :expr-par
   [{q :content}]
   (binary-ify (map to-query (remove #{"(" ")" " "} q))))
 
-(fact
+(fact "a:b OR c:d AND e:f"
   (let [example-ng {:tag :root
                     :content
                     [{:tag :expr-par,
@@ -148,7 +137,7 @@
                        ")"]}]}]
     (to-query example-ng) => '((or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f))))))
 
-(fact "a:b and b:c OR e:f AND g:d"
+(fact "a:b AND b:c OR e:f AND g:d"
   (let [example2 {:tag :root,
                   :content
                   [{:tag :expr-par,
@@ -184,7 +173,6 @@
                        ":"
                        {:tag :symbol, :content ["d"]}]}
                      ")"]}]}]
-    ;;a:b and b:c OR e:f AND g:d
     (to-query example2) => '((or (and (= (m :a) :b) (= (m :b) :c)) (and (= (m :e) :f) (= (m :g) :d))))))
 
 (defmethod to-query :expr-par-simple
