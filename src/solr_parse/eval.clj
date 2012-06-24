@@ -243,102 +243,104 @@
 (fact "to-query :string"
   (to-query {:tag :string, :content ["\"" "a" "\""]}) => "a")
 
-(def example-big
-  {:tag :root,
-   :content
-   [{:tag :expr-par,
-     :content
-     ["("
-      {:tag :expr-par,
-       :content
-       ["("
-        {:tag :expr-prefixed,
-         :content
-         [{:tag :prefix-op, :content ["-"]}
-          {:tag :key-value,
+(future-fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
+  (let [q {:tag :root,
            :content
-           [{:tag :symbol, :content ["w"]}
-            ":"
-            {:tag :symbol, :content ["b"]}]}]}
-        " "
-        {:tag :binary-op, :content ["AND"]}
-        " "
-        {:tag :expr-par-simple,
-         :content
-         ["("
-          {:tag :expr-par,
-           :content
-           ["("
-            {:tag :key-value,
-             :content
-             [{:tag :symbol, :content ["w"]}
-              ":"
-              {:tag :string, :content ["\"" "P" "\""]}]}
-            " "
-            {:tag :binary-op, :content ["AND"]}
-            " "
-            {:tag :key-value,
-             :content
-             [{:tag :symbol, :content ["w"]}
-              ":"
-              {:tag :string, :content ["\"" "M" "\""]}]}
-            " "
-            {:tag :binary-op, :content ["AND"]}
-            " "
-            {:tag :key-value,
-             :content
-             [{:tag :symbol, :content ["a"]}
-              ":"
-              {:tag :string, :content ["\"" "a" "\""]}]}
-            ")"]}
-          ")"]}
-        ")"]}
-      " "
-      {:tag :binary-op, :content ["OR"]}
-      " "
-      {:tag :expr-par,
-       :content
-       ["("
-        {:tag :key-value,
-         :content
-         [{:tag :symbol, :content ["w"]}
-          ":"
-          {:tag :symbol, :content ["b"]}]}
-        " "
-        {:tag :binary-op, :content ["AND"]}
-        " "
-        {:tag :expr-prefixed,
-         :content
-         [{:tag :prefix-op, :content ["-"]}
-          {:tag :expr-par-simple,
-           :content
-           ["("
-            {:tag :expr-par,
+           [{:tag :expr-par,
              :content
              ["("
-              {:tag :key-value,
+              {:tag :expr-par,
                :content
-               [{:tag :symbol, :content ["w"]}
-                ":"
-                {:tag :string, :content ["\"" "\nP" "\""]}]}
+               ["("
+                {:tag :expr-prefixed,
+                 :content
+                 [{:tag :prefix-op, :content ["-"]}
+                  {:tag :key-value,
+                   :content
+                   [{:tag :symbol, :content ["w"]}
+                    ":"
+                    {:tag :symbol, :content ["b"]}]}]}
+                " "
+                {:tag :binary-op, :content ["AND"]}
+                " "
+                {:tag :expr-par-simple,
+                 :content
+                 ["("
+                  {:tag :expr-par,
+                   :content
+                   ["("
+                    {:tag :key-value,
+                     :content
+                     [{:tag :symbol, :content ["w"]}
+                      ":"
+                      {:tag :string, :content ["\"" "P" "\""]}]}
+                    " "
+                    {:tag :binary-op, :content ["AND"]}
+                    " "
+                    {:tag :key-value,
+                     :content
+                     [{:tag :symbol, :content ["w"]}
+                      ":"
+                      {:tag :string, :content ["\"" "M" "\""]}]}
+                    " "
+                    {:tag :binary-op, :content ["AND"]}
+                    " "
+                    {:tag :key-value,
+                     :content
+                     [{:tag :symbol, :content ["a"]}
+                      ":"
+                      {:tag :string, :content ["\"" "a" "\""]}]}
+                    ")"]}
+                  ")"]}
+                ")"]}
               " "
-              {:tag :binary-op, :content ["AND"]}
+              {:tag :binary-op, :content ["OR"]}
               " "
-              {:tag :key-value,
+              {:tag :expr-par,
                :content
-               [{:tag :symbol, :content ["w"]}
-                ":"
-                {:tag :string, :content ["\"" "M" "\""]}]}
-              " "
-              {:tag :binary-op, :content ["AND"]}
-              " "
-              {:tag :key-value,
-               :content
-               [{:tag :symbol, :content ["a"]}
-                ":"
-                {:tag :string, :content ["\"" "a" "\""]}]}
-              ")"]}
-            ")"]}]}
-        ")"]}
-      ")"]}]})
+               ["("
+                {:tag :key-value,
+                 :content
+                 [{:tag :symbol, :content ["w"]}
+                  ":"
+                  {:tag :symbol, :content ["b"]}]}
+                " "
+                {:tag :binary-op, :content ["AND"]}
+                " "
+                {:tag :expr-prefixed,
+                 :content
+                 [{:tag :prefix-op, :content ["-"]}
+                  {:tag :expr-par-simple,
+                   :content
+                   ["("
+                    {:tag :expr-par,
+                     :content
+                     ["("
+                      {:tag :key-value,
+                       :content
+                       [{:tag :symbol, :content ["w"]}
+                        ":"
+                        {:tag :string, :content ["\"" "\nP" "\""]}]}
+                      " "
+                      {:tag :binary-op, :content ["AND"]}
+                      " "
+                      {:tag :key-value,
+                       :content
+                       [{:tag :symbol, :content ["w"]}
+                        ":"
+                        {:tag :string, :content ["\"" "M" "\""]}]}
+                      " "
+                      {:tag :binary-op, :content ["AND"]}
+                      " "
+                      {:tag :key-value,
+                       :content
+                       [{:tag :symbol, :content ["a"]}
+                        ":"
+                        {:tag :string, :content ["\"" "a" "\""]}]}
+                      ")"]}
+                    ")"]}]}
+                ")"]}
+              ")"]}]}]
+    ;; ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))
+    (to-query q) => nil))
 
