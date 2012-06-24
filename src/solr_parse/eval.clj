@@ -141,6 +141,52 @@
   (or? {:tag :binary-op, :content ["AND"]}) => false
   (or? {:tag :symbol, :content ["a"]}) => false)
 
+(def and? #{'and})
+(def or? #{'or})
+
+(defn and-ify
+  [s]
+  (if (and (sequential? s) (some and? s))
+    (cons 'and (remove and? s))
+    s))
+
+(fact "and-ify"
+  (and-ify '(0)) => '(0))
+
+(fact "and-ify"
+  (and-ify 0) => 0)
+
+(fact "and-ify"
+  (and-ify '(0 and 1)) => '(and 0 1))
+
+(fact "and-ify"
+  (and-ify '(0 and 1 and 2)) => '(and 0 1 2))
+
+(defn or-ify
+  [s]
+  (if (some or? s)
+    (cons 'or (map (fn [x] (if (and (sequential? x) (second x))
+                            x
+                            (first x)))
+                   (take-nth 2 (partition-by or? s))))
+    s))
+
+(fact "or-ify: no or"
+  (or-ify '(a and b))
+  => '(a and b))
+
+(fact "or-ify"
+  (or-ify '(a or b and c or d))
+  => '(or a (b and c) d))
+
+(defn binary-ify
+  [s]
+  (map and-ify (or-ify s)))
+
+(fact "binary-ify"
+  (binary-ify '(a or b and c or d))
+  => '(or a (and b c) d))
+
 (defmethod to-query :expr-par
   [{q :content}]
   (binary-ify (remove #{"(" ")" " "} (map to-query q))))
@@ -175,54 +221,7 @@
                        ")"]}]}]
     (to-query example-ng) => '((or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f))))))
 
-(defn and-ify
-  [s]
-  (if (and (sequential? s) (some and? s))
-    (cons 'and (remove and? s))
-    s))
-
-(fact "and-ify"
-  (and-ify '(0)) => '(0))
-
-(fact "and-ify"
-  (and-ify 0) => 0)
-
-(fact "and-ify"
-  (and-ify '(0 {:tag :binary-op, :content ["AND"]} 1)) => '(and 0 1))
-
-(fact "and-ify"
-  (and-ify '(0 {:tag :binary-op, :content ["AND"]}
-               1 {:tag :binary-op, :content ["AND"]}
-               2)) => '(and 0 1 2))
-
-(defn or-ify
-  [s]
-  (if (some or? s)
-    (cons 'or (map (fn [x] (if (and (sequential? x) (second x))
-                            x
-                            (first x)))
-                   (take-nth 2 (partition-by or? s))))
-    s))
-
-(fact "or-ify: no or"
-  (or-ify '(a
-            {:tag :binary-op, :content ["AND"]}
-            b))
-  => '(a {:tag :binary-op, :content ["AND"]} b))
-
-(fact "or-ify"
-  (or-ify '(a {:tag :binary-op, :content ["OR"]} b {:tag :binary-op, :content ["AND"]} c {:tag :binary-op, :content ["OR"]} d))
-  => '(or a (b {:tag :binary-op, :content ["AND"]} c) d))
-
-(defn binary-ify
-  [s]
-  (map and-ify (or-ify s)))
-
-(fact "binary-ify"
-  (binary-ify '(a {:tag :binary-op, :content ["OR"]} b {:tag :binary-op, :content ["AND"]} c {:tag :binary-op, :content ["OR"]} d))
-  => '(or a (and b c) d))
-
-(def example2-src "a:b AND b:c OR e:f AND g:d")
+(def example2-src "a:b and b:c OR e:f AND g:d")
 
 (def example2
 {:tag :root,
