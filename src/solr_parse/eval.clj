@@ -1,30 +1,27 @@
 (ns solr-parse.eval
   (:use     [midje.sweet])
-  (:use     [clojure.pprint     :only [pprint pp print-table]])
-  (:use     [clojure.string     :only [split join split-lines replace-first] :as s])
-  (:use     [clojure.repl       :only [doc find-doc dir]])
-  (:use     [clojure.java.javadoc       :only [javadoc]])
-  (:use     [clojure.tools.trace :only [trace deftrace trace-forms trace-ns untrace-ns trace-vars]])
-  (:use     [clojure.walk       :as w])
-  (:use     [solr-parse.parser  :only [parse-solr example-solr-query]])
-  (:require [clojure.xml        :as xml])
-  (:require [clojure.set        :as set])
-  (:require [clj-http.client    :as client])
-  (:require [clojure.java.shell :as sh])
-  (:require [clojure.java.io    :as io])
-  (:require [clojure.reflect    :as ref])
-  (:require [clojure.inspector  :as ins])
-  (:import  [java.io     File StreamTokenizer]))
+  (:use     [clojure.pprint       :only [pprint pp print-table]])
+  (:use     [clojure.repl         :only [doc find-doc dir]])
+  (:use     [clojure.java.javadoc :only [javadoc]])
+  (:use     [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns untrace-ns trace-vars]])
+  (:use     [clojure.walk         :as w])
+  (:use     [solr-parse.parser    :only [parse-solr example-solr-query]])
+  (:require [clojure.string       :only [split join split-lines replace-first blank?] :as s])
+  (:require [clojure.xml          :as xml])
+  (:require [clojure.set          :as set])
+  (:require [clj-http.client      :as client])
+  (:require [clojure.java.shell   :as sh])
+  (:require [clojure.java.io      :as io])
+  (:require [clojure.reflect      :as ref])
+  (:require [clojure.inspector    :as ins])
+  (:import  [java.io              File StreamTokenizer]))
 
 ;; ala 4 clj ;;;
 ;;; A expression evaluator
 
-(def to-query +) ;; hack to be able to redifine a multimethod dispatch
+(def to-query +) ;; hack to be able to redefine a multimethod dispatch
 
-(defmulti to-query "Dispatch on the :tag flag"
-  (fn [x] (cond (map? x)       (:tag x)
-               (#{"(" ")"} x) :par
-               (s/blank? x)   :blank)))
+(defmulti to-query "Dispatch on the :tag flag" :tag)
 
 (defmethod to-query :symbol
   [{[x] :content}] (keyword x))
