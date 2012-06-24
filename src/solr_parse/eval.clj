@@ -147,26 +147,34 @@
       {:tag :symbol, :content ["f"]}]}
     ")"]}]})
 
-
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
 
 (defn and?
   [x] (and (binary-op? x) (= (:content x ) ["AND"])))
 
+(fact
+  (and? {:tag :binary-op, :content ["AND"]}) => true
+  (and? {:tag :binary-op, :content ["OR"]}) => false
+  (and? {:tag :symbol, :content ["a"]}) => false)
+
 (defn or?
   [x] (and (binary-op? x) (= (:content x ) ["OR"])))
 
-(defmethod to-query :expr-par
-  [{q :content}] (cons 'or
-                       (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
-                            (take-nth 2 (partition-by or?
-                                                      (remove #{"(" ")" " "} (trace q)))))))
+(fact
+  (or? {:tag :binary-op, :content ["OR"]}) => true
+  (or? {:tag :binary-op, :content ["AND"]}) => false
+  (or? {:tag :symbol, :content ["a"]}) => false)
 
 (defmethod to-query :expr-par
-  [{q :content}] q)
+  [{q :content}]
+  (cons 'or
+        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
+             (take-nth 2 (partition-by or?
+                                       (remove #{"(" ")" " "} q))))))
 
-
+(fact
+  (to-query example-ng) => '((or (and (= (m :a) :b)) (and (= (m :c) :d) (= (m :e) :f)))))
 
 (defn and-or
   [s] (cons 'OR (map (fn [ands] (cons 'AND (remove #{'AND} ands)))
