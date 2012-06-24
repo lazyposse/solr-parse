@@ -239,7 +239,7 @@
                         ")"]}]}]
     (to-query example-not) => '(((not (= (m :a) :b))))))
 
-(future-fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
+(fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
   (let [q {:tag :root,
            :content
            [{:tag :expr-par,
@@ -338,5 +338,11 @@
                 ")"]}
               ")"]}]}]
     ;; ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))
-    (to-query q) => nil))
-
+    (to-query q) => '((or (and (not (= (m :w) :b))
+                               ((and (= (m :w) "P")
+                                     (= (m :w) "M")
+                                     (= (m :a) "a"))))
+                          (and (= (m :w) :b)
+                               (not ((and (= (m :w) "\nP")
+                                          (= (m :w) "M")
+                                          (= (m :a) "a")))))))))
