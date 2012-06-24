@@ -176,26 +176,6 @@
 (fact
   (to-query example-ng) => '((or (and (= (m :a) :b)) (and (= (m :c) :d) (= (m :e) :f)))))
 
-(defn and-or
-  [s] (cons 'OR (map (fn [ands] (cons 'AND (remove #{'AND} ands)))
-                     (take-nth 2 (partition-by #{'OR} s)))))
-
-(future-fact "and-or: only and"
-  (and-or '(0 AND 1))
-  => '(AND 0 1))
-
-(future-fact "and-or: only or"
-  (and-or '(0 AND 1))
-  => '(AND 0 1))
-
-(fact "and-or"
-  (and-or '(0 AND 1 OR 2 OR 3 AND 4 AND 5))
-  => '(OR (AND 0 1) (AND 2) (AND 3 4 5)))
-
-(fact "and-or"
-  (and-or '(0 AND 1 OR 2 OR 3 AND 4 AND 5))
-  => '(OR (AND 0 1) (AND 2) (AND 3 4 5)))
-
 (defn and-ify
   [s]
   (if (and (sequential? s) (some and? s))
