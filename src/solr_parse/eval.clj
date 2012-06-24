@@ -33,8 +33,7 @@
   [x] x)
 
 (fact "to-query unidentified symbol return the symbol as is."
-  (to-query 'or) => 'or
-  (to-query 'and) => 'and)
+  (to-query :a) => :a)
 
 (defmethod to-query :key-value
   [{[x _ y] :content}] (list '= (list 'm (to-query x)) (to-query y)))
