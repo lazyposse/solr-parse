@@ -190,8 +190,8 @@
 
 (defn and-ify
   [s]
-  (if (and (sequential? s) (some #{'AND} s))
-    (cons 'and (remove #{'AND} s))
+  (if (and (sequential? s) (some and? s))
+    (cons 'and (remove and? s))
     s))
 
 (fact "and-ify"
@@ -201,10 +201,12 @@
   (and-ify 0) => 0)
 
 (fact "and-ify"
-  (and-ify '(0 AND 1)) => '(and 0 1))
+  (and-ify '(0 {:tag :binary-op, :content ["AND"]} 1)) => '(and 0 1))
 
 (fact "and-ify"
-  (and-ify '(0 AND 1 AND 2)) => '(and 0 1 2))
+  (and-ify '(0 {:tag :binary-op, :content ["AND"]}
+               1 {:tag :binary-op, :content ["AND"]}
+               2)) => '(and 0 1 2))
 
 (defn or-ify
   [s]
