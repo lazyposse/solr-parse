@@ -61,12 +61,6 @@
 (fact "to-query :binary-op"
   (to-query {:tag :binary-op, :content ["X"]}) => (throws Exception))
 
-(defmethod to-query :par
-  [c] nil)
-
-(defmethod to-query :blank
-  [_] nil)
-
 (defmethod to-query :root
   [{c :content}] (map to-query c))
 
