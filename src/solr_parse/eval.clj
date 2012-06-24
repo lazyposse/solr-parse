@@ -164,7 +164,7 @@
 
 (defmethod to-query :expr-par
   [{q :content}]
-  (binary-ify (remove #{"(" ")" " "} (map to-query q))))
+  (binary-ify (map to-query (remove #{"(" ")" " "} q))))
 
 (fact
   (let [example-ng {:tag :root
@@ -196,44 +196,44 @@
                        ")"]}]}]
     (to-query example-ng) => '((or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f))))))
 
-(def example2-src "a:b and b:c OR e:f AND g:d")
-
-(def example2
-{:tag :root,
- :content
- [{:tag :expr-par,
-   :content
-   ["("
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["a"]}
-      ":"
-      {:tag :symbol, :content ["b"]}]}
-    " "
-    {:tag :binary-op, :content ["AND"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["b"]}
-      ":"
-      {:tag :symbol, :content ["c"]}]}
-    " "
-    {:tag :binary-op, :content ["OR"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["e"]}
-      ":"
-      {:tag :symbol, :content ["f"]}]}
-    " "
-    {:tag :binary-op, :content ["AND"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["g"]}
-      ":"
-      {:tag :symbol, :content ["d"]}]}
-    ")"]}]})
+(fact "a:b and b:c OR e:f AND g:d"
+  (let [example2 {:tag :root,
+                  :content
+                  [{:tag :expr-par,
+                    :content
+                    ["("
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["a"]}
+                       ":"
+                       {:tag :symbol, :content ["b"]}]}
+                     " "
+                     {:tag :binary-op, :content ["AND"]}
+                     " "
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["b"]}
+                       ":"
+                       {:tag :symbol, :content ["c"]}]}
+                     " "
+                     {:tag :binary-op, :content ["OR"]}
+                     " "
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["e"]}
+                       ":"
+                       {:tag :symbol, :content ["f"]}]}
+                     " "
+                     {:tag :binary-op, :content ["AND"]}
+                     " "
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["g"]}
+                       ":"
+                       {:tag :symbol, :content ["d"]}]}
+                     ")"]}]}]
+    ;;a:b and b:c OR e:f AND g:d
+    (to-query example2) => '((or (and (= (m :a) :b) (= (m :b) :c)) (and (= (m :e) :f) (= (m :g) :d))))))
 
 (defmethod to-query :expr-par-simple
   [{q :content}] (map to-query q))
