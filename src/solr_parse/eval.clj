@@ -162,9 +162,22 @@
                        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
                             (take-nth 2 (partition-by or?
                                                       (remove #{"(" ")" " "} (trace q)))))))
+(comment  (def s (:content s))
+          (def s (first s))
+          (def s (:content s)))
 
 (defmethod to-query :expr-par
-  [{q :content}] q)
+  [{s :content}] (map (fn [x] (if (sequential? x)
+                               (map to-query x)
+                               (to-query x)))
+                      (map (fn [x] (if (and (sequential? x) (some and? x))
+                                    (cons (first (filter and? x))
+                                          (remove and? x))
+                                    x))
+                           (if (some or? s)
+                             (let [o (first (filter or? s))]
+                               (cons o (take-nth 2 (partition-by or? s))))
+                             [s]))))
 
 
 
@@ -222,6 +235,13 @@
 (fact "or-ify"
   (or-ify '(a OR b AND c OR d))
   => '(or a (b AND c) d))
+
+(defn and-or-ify
+  [e] (map and-ify (or-ify e)))
+
+(fact "or-ify"
+  (and-or-ify '(a OR b AND c OR d))
+  => '(or a (and b c) d))
 
 (def example2-src "a:b AND b:c OR e:f AND g:d")
 
@@ -409,3 +429,42 @@
         ")"]}
       ")"]}]})
 
+(comment
+  (def s (parse-solr "a:b OR c:d"))
+  (def s (:content s))
+  (def s (first s))
+  (def s (:content s))
+  (pprint (let [o? (some or? s)
+                r  (map (fn [i] (map to-query i))
+                        (if o?
+                          (take-nth 2 (partition-by or? s))
+                          s))]
+            (if o? (cons 'or r)
+                r))))
+
+(defn to-query-in-transit
+  [s]
+  (map (fn [x] (if (sequential? x)
+                (map to-query x)
+                (to-query x)))
+       (map (fn [x] (if (and (sequential? x) (some and? x))
+                     (cons (first (filter and? x))
+                           (remove and? x))
+                     x))
+            (if (some or? s)
+              (let [o (first (filter or? s))]
+                (cons o (take-nth 2 (partition-by or? s))))
+              [s]))))
+
+(comment
+  (def s (parse-solr "a:b AND c:d"))
+  (def s (:content s))
+  (def s (first s))
+  (def s (:content s))
+  (pprint (let [o? (some or? s)
+                r  (if o?
+                     (map (fn [i] (map to-query i))
+                          (take-nth 2 (partition-by or? s)))
+                     (map to-query s))]
+            (if o? (cons 'or r)
+                r))))
