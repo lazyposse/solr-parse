@@ -346,3 +346,154 @@
                                (not ((and (= (m :w) "\nP")
                                           (= (m :w) "M")
                                           (= (m :a) "a")))))))))
+
+(defn- rm-nil "Given a nested datastructure, returns the same but without nil"
+  [s] (if (sequential? s)
+        (map rm-nil (remove nil? s))
+        s))
+
+(fact "rm-nil"
+  (rm-nil '(nil)) => ()
+  (rm-nil '((nil))) => '(())
+  (rm-nil 'a) => 'a
+  (rm-nil '(a nil a nil)) => '(a a))
+
+(defn- dup-par?
+  [s] (and (sequential? s)
+           (sequential? (first s))
+           (not (second s))))
+
+(fact "dup-par?"
+  (dup-par? :a) => false
+  (dup-par? '(:a)) => false
+  (dup-par? '((:a))) => true)
+
+(defn- rm-dup-par-1 "given a form 'peel' its parens til it only one level"
+  [s] (if (dup-par? s)
+        (rm-dup-par-1 (first s))
+        s))
+
+(fact "rm-dup-par-1"
+  (rm-dup-par-1 'a) => 'a
+  (rm-dup-par-1 '(a)) => '(a)
+  (rm-dup-par-1 '((a))) => '(a)
+  (rm-dup-par-1 '(((a)))) => '(a))
+
+(defn- rm-dup-par "Remove duplicate parens from the given form (recursively)"
+  [s] (if (sequential? s)
+        (map rm-dup-par
+             (rm-dup-par-1 s))
+        s))
+
+(fact "rm-dup-par"
+  (rm-dup-par '((a (b) ((c))))) => '(a (b) (c)))
+
+(def compile-query (comp rm-dup-par rm-nil to-query))
+
+(fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
+  (let [q {:tag :root,
+           :content
+           [{:tag :expr-par,
+             :content
+             ["("
+              {:tag :expr-par,
+               :content
+               ["("
+                {:tag :expr-prefixed,
+                 :content
+                 [{:tag :prefix-op, :content ["-"]}
+                  {:tag :key-value,
+                   :content
+                   [{:tag :symbol, :content ["w"]}
+                    ":"
+                    {:tag :symbol, :content ["b"]}]}]}
+                " "
+                {:tag :binary-op, :content ["AND"]}
+                " "
+                {:tag :expr-par-simple,
+                 :content
+                 ["("
+                  {:tag :expr-par,
+                   :content
+                   ["("
+                    {:tag :key-value,
+                     :content
+                     [{:tag :symbol, :content ["w"]}
+                      ":"
+                      {:tag :string, :content ["\"" "P" "\""]}]}
+                    " "
+                    {:tag :binary-op, :content ["AND"]}
+                    " "
+                    {:tag :key-value,
+                     :content
+                     [{:tag :symbol, :content ["w"]}
+                      ":"
+                      {:tag :string, :content ["\"" "M" "\""]}]}
+                    " "
+                    {:tag :binary-op, :content ["AND"]}
+                    " "
+                    {:tag :key-value,
+                     :content
+                     [{:tag :symbol, :content ["a"]}
+                      ":"
+                      {:tag :string, :content ["\"" "a" "\""]}]}
+                    ")"]}
+                  ")"]}
+                ")"]}
+              " "
+              {:tag :binary-op, :content ["OR"]}
+              " "
+              {:tag :expr-par,
+               :content
+               ["("
+                {:tag :key-value,
+                 :content
+                 [{:tag :symbol, :content ["w"]}
+                  ":"
+                  {:tag :symbol, :content ["b"]}]}
+                " "
+                {:tag :binary-op, :content ["AND"]}
+                " "
+                {:tag :expr-prefixed,
+                 :content
+                 [{:tag :prefix-op, :content ["-"]}
+                  {:tag :expr-par-simple,
+                   :content
+                   ["("
+                    {:tag :expr-par,
+                     :content
+                     ["("
+                      {:tag :key-value,
+                       :content
+                       [{:tag :symbol, :content ["w"]}
+                        ":"
+                        {:tag :string, :content ["\"" "\nP" "\""]}]}
+                      " "
+                      {:tag :binary-op, :content ["AND"]}
+                      " "
+                      {:tag :key-value,
+                       :content
+                       [{:tag :symbol, :content ["w"]}
+                        ":"
+                        {:tag :string, :content ["\"" "M" "\""]}]}
+                      " "
+                      {:tag :binary-op, :content ["AND"]}
+                      " "
+                      {:tag :key-value,
+                       :content
+                       [{:tag :symbol, :content ["a"]}
+                        ":"
+                        {:tag :string, :content ["\"" "a" "\""]}]}
+                      ")"]}
+                    ")"]}]}
+                ")"]}
+              ")"]}]}]
+    ;; ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))
+    (compile-query q) => '(or (and (not (= (m :w) :b))
+                                   (and (= (m :w) "P")
+                                        (= (m :w) "M")
+                                        (= (m :a) "a")))
+                              (and (= (m :w) :b)
+                                   (not (and (= (m :w) "\nP")
+                                             (= (m :w) "M")
+                                             (= (m :a) "a")))))))
