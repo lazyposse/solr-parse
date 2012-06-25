@@ -166,6 +166,15 @@
           (def s (first s))
           (def s (:content s)))
 
+(defn- rm-nil "Given a nested datastructure, returns the same but without nil"
+  [s] (if (sequential? s)
+        (map f (remove nil? s))
+        s))
+
+(fact "rm-nil"
+  (rm-nil '(nil)) => ()
+  (rm-nil '((nil))) => '(()))
+
 (defmethod to-query :expr-par
   [{s :content}] (map (fn [x] (if (sequential? x)
                                (map to-query x)
