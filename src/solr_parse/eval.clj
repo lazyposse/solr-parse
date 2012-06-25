@@ -506,15 +506,4 @@
         to-query
         parse-solr))
 
-(comment
-  (def s (parse-solr "a:b AND c:d"))
-  (def s (:content s))
-  (def s (first s))
-  (def s (:content s))
-  (pprint (let [o? (some or? s)
-                r  (if o?
-                     (map (fn [i] (map to-query i))
-                          (take-nth 2 (partition-by or? s)))
-                     (map to-query s))]
-            (if o? (cons 'or r)
-                r))))
+
