@@ -497,6 +497,15 @@
                 (cons o (take-nth 2 (partition-by or? s))))
               [s]))))
 
+(defn compile
+  [r] (rm-dup-par (rm-nil (to-query (parse-solr r)))))
+
+(def compile
+  (comp rm-dup-par
+        rm-nil
+        to-query
+        parse-solr))
+
 (comment
   (def s (parse-solr "a:b AND c:d"))
   (def s (:content s))
