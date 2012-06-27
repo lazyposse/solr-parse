@@ -397,8 +397,14 @@
   (compile-q "a:b AND c:d") => '(and (= (m :a) :b) (= (m :c) :d))
   (compile-q "a:b AND c:d AND e:f") => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f))
   (compile-q "a:b AND c:d OR e:f") => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                           (= (m :e) :f)))
+                                           (= (m :e) :f))
+  (compile-q "a:b AND c:d OR e:f OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
+                                                  (= (m :e) :f)
+                                                  (= (m :g) :h)))
 
 (fact "compile-q - with parenthesis"
   (compile-q "(a:b AND c:d) OR (e:f)") => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                           (= (m :e) :f)))
+                                               (= (m :e) :f))
+  (compile-q "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
+                                                      (= (m :e) :f)
+                                                      (= (m :g) :h)))
