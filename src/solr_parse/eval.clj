@@ -101,16 +101,27 @@
   (or-ify '(a and b)) => '(a and b)
   (or-ify '(a or b and c or d)) => '(or a (b and c) d))
 
-(defn binary-ify
-  [s]
-  (map and-ify (or-ify s)))
+(defn binary-op?
+  [x] (= (:tag x) :binary-op))
 
-(fact "binary-ify"
-  (binary-ify '(a or b and c or d)) => '(or a (and b c) d))
+(defn and?
+  [x] (and (binary-op? x) (= (:content x ) ["AND"])))
+
+(defn or?
+  [x] (and (binary-op? x) (= (:content x ) ["OR"])))
 
 (defmethod to-query :expr-par
-  [{q :content}]
-  (binary-ify (map to-query (remove #{"(" ")" " "} q))))
+  [{s :content}] (map (fn [x] (if (sequential? x)
+                               (map to-query x)
+                               (to-query x)))
+                      (map (fn [x] (if (and (sequential? x) (some and? x))
+                                    (cons (first (filter and? x))
+                                          (remove and? x))
+                                    x))
+                           (if (some or? s)
+                             (let [o (first (filter or? s))]
+                               (cons o (take-nth 2 (partition-by or? s))))
+                             [s]))))
 
 (fact "a:b OR c:d AND e:f"
   (let [example-ng {:tag :root
@@ -647,16 +658,6 @@
       {:tag :symbol, :content ["f"]}]}
     ")"]}]})
 
-
-(defn binary-op?
-  [x] (= (:tag x) :binary-op))
-
-(defn and?
-  [x] (and (binary-op? x) (= (:content x ) ["AND"])))
-
-(defn or?
-  [x] (and (binary-op? x) (= (:content x ) ["OR"])))
-
 (defmethod to-query :expr-par
   [{q :content}] (cons 'or
                        (map (fn [ands] (cons 'and (map to-query (remove and? ands))))
@@ -781,8 +782,7 @@
   [e] (map and-ify (or-ify e)))
 
 (fact "or-ify"
-  (and-or-ify '(a OR b AND c OR d))
-  => '(or a (and b c) d))
+  (and-or-ify '(a OR b AND c OR d)) => '(or a (and b c) d))
 
 (defn compile
   [r] (rm-dup-par (rm-nil (to-query (parse-solr r)))))
