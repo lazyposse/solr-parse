@@ -182,7 +182,7 @@
 
 (defmethod to-query :expr-par-simple
   [{q :content}]
-  (binary-ify (map to-query (remove #{"(" ")"} q))))
+  (map to-query q))
 
 (fact "to-query :expr-par-simple"
   (let [q {:tag :expr-par-simple,
@@ -783,77 +783,6 @@
 (fact "or-ify"
   (and-or-ify '(a OR b AND c OR d))
   => '(or a (and b c) d))
-
-(def example2-src "a:b AND b:c OR e:f AND g:d")
-
-(def example2
-{:tag :root,
- :content
- [{:tag :expr-par,
-   :content
-   ["("
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["a"]}
-      ":"
-      {:tag :symbol, :content ["b"]}]}
-    " "
-    {:tag :binary-op, :content ["AND"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["b"]}
-      ":"
-      {:tag :symbol, :content ["c"]}]}
-    " "
-    {:tag :binary-op, :content ["OR"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["e"]}
-      ":"
-      {:tag :symbol, :content ["f"]}]}
-    " "
-    {:tag :binary-op, :content ["AND"]}
-    " "
-    {:tag :key-value,
-     :content
-     [{:tag :symbol, :content ["g"]}
-      ":"
-      {:tag :symbol, :content ["d"]}]}
-    ")"]}]})
-
-(defmethod to-query :expr-par-simple
-  [{q :content}] (map to-query q))
-
-(defmethod to-query :prefix-op
-  [{[q] :content}] (if-let [o ({"-" 'not} q)]
-                     o
-                     (throw (RuntimeException. (str "Unknown prefix operator: " q)))))
-
-(defmethod to-query :expr-prefixed
-  [{q :content}]
-  {:pre [(= 2 (count q))]}
-  (list (to-query (first  q))
-        (to-query (second q))))
-
-(def example-not-src "-a:b")
-
-(def example-not
-  {:tag :root,
-   :content
-   [{:tag :expr-par-simple,
-     :content
-     ["("
-      {:tag :expr-prefixed,
-       :content
-       [{:tag :prefix-op, :content ["-"]}
-        {:tag :key-value,
-         :content
-         [{:tag :symbol, :content ["a"]}
-          ":"
-          {:tag :symbol, :content ["b"]}]}]}
-      ")"]}]})
 
 (defn compile
   [r] (rm-dup-par (rm-nil (to-query (parse-solr r)))))
