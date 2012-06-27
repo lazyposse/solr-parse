@@ -128,7 +128,7 @@
 (fact "rm-dup-par"
   (rm-dup-par '((a (b) ((c))))) => '(a (b) (c)))
 
-(def compile-query (comp rm-dup-par rm-nil to-query))
+(def compile-solr-query (comp rm-dup-par rm-nil to-query))
 
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
@@ -181,7 +181,7 @@
                          ":"
                          {:tag :symbol, :content ["f"]}]}
                        ")"]}]}]
-    (compile-query example-ng) => '(or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f)))))
+    (compile-solr-query example-ng) => '(or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f)))))
 
 (fact "a:b AND b:c OR e:f AND g:d"
   (let [example2 {:tag :root,
@@ -219,7 +219,7 @@
                        ":"
                        {:tag :symbol, :content ["d"]}]}
                      ")"]}]}]
-    (compile-query example2) => '(or (and (= (m :a) :b) (= (m :b) :c))
+    (compile-solr-query example2) => '(or (and (= (m :a) :b) (= (m :b) :c))
                                      (and (= (m :e) :f) (= (m :g) :d)))))
 
 (defmethod to-query :expr-par-simple
@@ -236,7 +236,7 @@
               ":"
               {:tag :symbol, :content ["b"]}]}
             ")"]}]
-    (compile-query q)) => '(= (m :a) :b))
+    (compile-solr-query q)) => '(= (m :a) :b))
 
 (defmethod to-query :prefix-op
   [{[q] :content}] (if-let [o ({"-" 'not} q)]
@@ -279,7 +279,7 @@
                             ":"
                             {:tag :symbol, :content ["b"]}]}]}
                         ")"]}]}]
-    (compile-query example-not) => '(not (= (m :a) :b))))
+    (compile-solr-query example-not) => '(not (= (m :a) :b))))
 
 (fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
   (let [q {:tag :root,
@@ -380,7 +380,7 @@
                 ")"]}
               ")"]}]}]
     ;; ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))
-    (compile-query q) => '(or (and (not (= (m :w) :b))
+    (compile-solr-query q) => '(or (and (not (= (m :w) :b))
                                    (and (= (m :w) "P")
                                         (= (m :w) "M")
                                         (= (m :a) "a")))
@@ -391,20 +391,20 @@
 
 
 ;; Our common function to eval and parse our solr query
-(def compile-q (comp compile-query parse-solr))
+(def compile-query (comp compile-solr-query parse-solr))
 
-(fact "compile-q - without parenthesis"
-  (compile-q "a:b AND c:d") => '(and (= (m :a) :b) (= (m :c) :d))
-  (compile-q "a:b AND c:d AND e:f") => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f))
-  (compile-q "a:b AND c:d OR e:f") => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                           (= (m :e) :f))
-  (compile-q "a:b AND c:d OR e:f OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                                  (= (m :e) :f)
-                                                  (= (m :g) :h)))
-
-(fact "compile-q - with parenthesis"
-  (compile-q "(a:b AND c:d) OR (e:f)") => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                               (= (m :e) :f))
-  (compile-q "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
+(fact "compile-query - without parenthesis"
+  (compile-query "a:b AND c:d")               => '(and (= (m :a) :b) (= (m :c) :d))
+  (compile-query "a:b AND c:d AND e:f")       => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f))
+  (compile-query "a:b AND c:d OR e:f")        => '(or (and (= (m :a) :b) (= (m :c) :d))
+                                                      (= (m :e) :f))
+  (compile-query "a:b AND c:d OR e:f OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
                                                       (= (m :e) :f)
                                                       (= (m :g) :h)))
+
+(fact "compile-query - with parenthesis"
+  (compile-query "(a:b AND c:d) OR (e:f)")        => '(or (and (= (m :a) :b) (= (m :c) :d))
+                                                          (= (m :e) :f))
+  (compile-query "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
+                                                          (= (m :e) :f)
+                                                          (= (m :g) :h)))
