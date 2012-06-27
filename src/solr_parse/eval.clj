@@ -86,31 +86,6 @@
               {:tag :string, :content ["\"" "b" "\""]}]}]}]
     (to-query q) => '((= (m :a) "b"))))
 
-(defn and-ify
-  [s]
-  (if (and (sequential? s) (some #{'and} s))
-    (cons 'and (remove #{'and} s))
-    s))
-
-(fact "and-ify"
-  (and-ify '(0)) => '(0)
-  (and-ify 0) => 0
-  (and-ify '(0 and 1)) => '(and 0 1)
-  (and-ify '(0 and 1 and 2)) => '(and 0 1 2))
-
-(defn or-ify
-  [s]
-  (if (some #{'or} s)
-    (cons 'or (map (fn [x] (if (and (sequential? x) (second x))
-                            x
-                            (first x)))
-                   (take-nth 2 (partition-by #{'or} s))))
-    s))
-
-(fact "or-ify: no or"
-  (or-ify '(a and b)) => '(a and b)
-  (or-ify '(a or b and c or d)) => '(or a (b and c) d))
-
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
 
