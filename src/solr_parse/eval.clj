@@ -393,6 +393,8 @@
 ;; Our common function to eval and parse our solr query
 (def compile-q (comp compile-query parse-solr))
 
-(fact
+(fact "compile-q"
   (compile-q "a:b AND c:d") => '(and (= (m :a) :b) (= (m :c) :d))
-  (compile-q "a:b AND c:d AND e:f") => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f)))
+  (compile-q "a:b AND c:d AND e:f") => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f))
+  (compile-q "a:b AND c:d OR e:f") => '(or (and (= (m :a) :b) (= (m :c) :d))
+                                           (= (m :e) :f)))
