@@ -29,8 +29,15 @@
 (defmethod to-query :par
   [c] nil)
 
+(fact "to-query :blank"
+  (to-query "(") => nil
+  (to-query ")") => nil)
+
 (defmethod to-query :blank
   [_] nil)
+
+(fact "to-query :blank"
+  (to-query " ") => nil)
 
 (defmethod to-query :symbol
   [{[x] :content}] (keyword x))
@@ -43,12 +50,6 @@
 
 (fact "to-query :string"
   (to-query {:tag :string, :content ["\"" "a" "\""]}) => "a")
-
-(defmethod to-query :default
-  [x] x)
-
-(fact "to-query unidentified symbol return the symbol as is."
-  (to-query :a) => :a)
 
 (defmethod to-query :key-value
   [{[x _ y] :content}] (list '= (list 'm (to-query x)) (to-query y)))
@@ -518,7 +519,7 @@
                                              (= (m :w) "M")
                                              (= (m :a) "a")))))))
 
-(def compile
+(def compile-query2
   (comp rm-dup-par
         rm-nil
         to-query
