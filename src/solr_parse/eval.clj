@@ -220,7 +220,7 @@
                        {:tag :symbol, :content ["d"]}]}
                      ")"]}]}]
     (compile-solr-query example2) => '(or (and (= (m :a) :b) (= (m :b) :c))
-                                     (and (= (m :e) :f) (= (m :g) :d)))))
+                                          (and (= (m :e) :f) (= (m :g) :d)))))
 
 (defmethod to-query :expr-par-simple
   [{q :content}]
@@ -381,13 +381,13 @@
               ")"]}]}]
     ;; ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))
     (compile-solr-query q) => '(or (and (not (= (m :w) :b))
-                                   (and (= (m :w) "P")
-                                        (= (m :w) "M")
-                                        (= (m :a) "a")))
-                              (and (= (m :w) :b)
-                                   (not (and (= (m :w) "\nP")
+                                        (and (= (m :w) "P")
                                              (= (m :w) "M")
-                                             (= (m :a) "a")))))))
+                                             (= (m :a) "a")))
+                                   (and (= (m :w) :b)
+                                        (not (and (= (m :w) "\nP")
+                                                  (= (m :w) "M")
+                                                  (= (m :a) "a")))))))
 
 
 ;; Our common function to eval and parse our solr query
