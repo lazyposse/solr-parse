@@ -29,7 +29,7 @@
 (defmethod to-query :par
   [c] nil)
 
-(fact "to-query :blank"
+(fact "to-query :par"
   (to-query "(") => nil
   (to-query ")") => nil)
 
