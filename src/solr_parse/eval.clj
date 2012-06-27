@@ -86,262 +86,6 @@
               {:tag :string, :content ["\"" "b" "\""]}]}]}]
     (to-query q) => '((= (m :a) "b"))))
 
-(defn binary-op?
-  [x] (= (:tag x) :binary-op))
-
-(defn and?
-  [x] (and (binary-op? x) (= (:content x ) ["AND"])))
-
-(defn or?
-  [x] (and (binary-op? x) (= (:content x ) ["OR"])))
-
-(defmethod to-query :expr-par
-  [{s :content}] (map (fn [x] (if (sequential? x)
-                               (map to-query x)
-                               (to-query x)))
-                      (map (fn [x] (if (and (sequential? x) (some and? x))
-                                    (cons (first (filter and? x))
-                                          (remove and? x))
-                                    x))
-                           (if (some or? s)
-                             (let [o (first (filter or? s))]
-                               (cons o (take-nth 2 (partition-by or? s))))
-                             [s]))))
-
-(fact "a:b OR c:d AND e:f"
-  (let [example-ng {:tag :root
-                    :content
-                    [{:tag :expr-par
-                      :content
-                      ["("
-                       {:tag :key-value,
-                        :content
-                        [{:tag :symbol, :content ["a"]}
-                         ":"
-                         {:tag :symbol, :content ["b"]}]}
-                       " "
-                       {:tag :binary-op, :content ["OR"]}
-                       " "
-                       {:tag :key-value,
-                        :content
-                        [{:tag :symbol, :content ["c"]}
-                         ":"
-                         {:tag :symbol, :content ["d"]}]}
-                       " "
-                       {:tag :binary-op, :content ["AND"]}
-                       " "
-                       {:tag :key-value,
-                        :content
-                        [{:tag :symbol, :content ["e"]}
-                         ":"
-                         {:tag :symbol, :content ["f"]}]}
-                       ")"]}]}]
-    (to-query example-ng) => '((or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f))))))
-
-(fact "a:b AND b:c OR e:f AND g:d"
-  (let [example2 {:tag :root,
-                  :content
-                  [{:tag :expr-par,
-                    :content
-                    ["("
-                     {:tag :key-value,
-                      :content
-                      [{:tag :symbol, :content ["a"]}
-                       ":"
-                       {:tag :symbol, :content ["b"]}]}
-                     " "
-                     {:tag :binary-op, :content ["AND"]}
-                     " "
-                     {:tag :key-value,
-                      :content
-                      [{:tag :symbol, :content ["b"]}
-                       ":"
-                       {:tag :symbol, :content ["c"]}]}
-                     " "
-                     {:tag :binary-op, :content ["OR"]}
-                     " "
-                     {:tag :key-value,
-                      :content
-                      [{:tag :symbol, :content ["e"]}
-                       ":"
-                       {:tag :symbol, :content ["f"]}]}
-                     " "
-                     {:tag :binary-op, :content ["AND"]}
-                     " "
-                     {:tag :key-value,
-                      :content
-                      [{:tag :symbol, :content ["g"]}
-                       ":"
-                       {:tag :symbol, :content ["d"]}]}
-                     ")"]}]}]
-    (to-query example2) => '((or (and (= (m :a) :b) (= (m :b) :c)) (and (= (m :e) :f) (= (m :g) :d))))))
-
-(defmethod to-query :expr-par-simple
-  [{q :content}]
-  (map to-query q))
-
-(fact "to-query :expr-par-simple"
-  (let [q {:tag :expr-par-simple,
-           :content
-           ["("
-            {:tag :key-value,
-             :content
-             [{:tag :symbol, :content ["a"]}
-              ":"
-              {:tag :symbol, :content ["b"]}]}
-            ")"]}]
-    (to-query q)) => '((= (m :a) :b)))
-
-(defmethod to-query :prefix-op
-  [{[q] :content}] (if-let [o ({"-" 'not} q)]
-                     o
-                     (throw (RuntimeException. (str "Unknown prefix operator: " q)))))
-
-(fact "to-query :prefix-op"
-  (to-query {:tag :prefix-op, :content ["-"]}) => 'not
-  (to-query {:tag :prefix-op, :content [:a]}) => (throws RuntimeException))
-
-(defmethod to-query :expr-prefixed
-  [{q :content}]
-  {:pre [(= 2 (count q))]}
-  (list (to-query (first  q))
-        (to-query (second q))))
-
-(fact "to-query - expr-prefixed"
-  (let [q {:tag :expr-prefixed,
-           :content
-           [{:tag :prefix-op, :content ["-"]}
-            {:tag :key-value,
-             :content
-             [{:tag :symbol, :content ["a"]}
-              ":"
-              {:tag :symbol, :content ["b"]}]}]}]
-    (to-query q) => '(not (= (m :a) :b))))
-
-(fact "-a:b"
-  (let [example-not {:tag :root,
-                     :content
-                     [{:tag :expr-par-simple,
-                       :content
-                       ["("
-                        {:tag :expr-prefixed,
-                         :content
-                         [{:tag :prefix-op, :content ["-"]}
-                          {:tag :key-value,
-                           :content
-                           [{:tag :symbol, :content ["a"]}
-                            ":"
-                            {:tag :symbol, :content ["b"]}]}]}
-                        ")"]}]}]
-    (to-query example-not) => '(((not (= (m :a) :b))))))
-
-(fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
-  (let [q {:tag :root,
-           :content
-           [{:tag :expr-par,
-             :content
-             ["("
-              {:tag :expr-par,
-               :content
-               ["("
-                {:tag :expr-prefixed,
-                 :content
-                 [{:tag :prefix-op, :content ["-"]}
-                  {:tag :key-value,
-                   :content
-                   [{:tag :symbol, :content ["w"]}
-                    ":"
-                    {:tag :symbol, :content ["b"]}]}]}
-                " "
-                {:tag :binary-op, :content ["AND"]}
-                " "
-                {:tag :expr-par-simple,
-                 :content
-                 ["("
-                  {:tag :expr-par,
-                   :content
-                   ["("
-                    {:tag :key-value,
-                     :content
-                     [{:tag :symbol, :content ["w"]}
-                      ":"
-                      {:tag :string, :content ["\"" "P" "\""]}]}
-                    " "
-                    {:tag :binary-op, :content ["AND"]}
-                    " "
-                    {:tag :key-value,
-                     :content
-                     [{:tag :symbol, :content ["w"]}
-                      ":"
-                      {:tag :string, :content ["\"" "M" "\""]}]}
-                    " "
-                    {:tag :binary-op, :content ["AND"]}
-                    " "
-                    {:tag :key-value,
-                     :content
-                     [{:tag :symbol, :content ["a"]}
-                      ":"
-                      {:tag :string, :content ["\"" "a" "\""]}]}
-                    ")"]}
-                  ")"]}
-                ")"]}
-              " "
-              {:tag :binary-op, :content ["OR"]}
-              " "
-              {:tag :expr-par,
-               :content
-               ["("
-                {:tag :key-value,
-                 :content
-                 [{:tag :symbol, :content ["w"]}
-                  ":"
-                  {:tag :symbol, :content ["b"]}]}
-                " "
-                {:tag :binary-op, :content ["AND"]}
-                " "
-                {:tag :expr-prefixed,
-                 :content
-                 [{:tag :prefix-op, :content ["-"]}
-                  {:tag :expr-par-simple,
-                   :content
-                   ["("
-                    {:tag :expr-par,
-                     :content
-                     ["("
-                      {:tag :key-value,
-                       :content
-                       [{:tag :symbol, :content ["w"]}
-                        ":"
-                        {:tag :string, :content ["\"" "\nP" "\""]}]}
-                      " "
-                      {:tag :binary-op, :content ["AND"]}
-                      " "
-                      {:tag :key-value,
-                       :content
-                       [{:tag :symbol, :content ["w"]}
-                        ":"
-                        {:tag :string, :content ["\"" "M" "\""]}]}
-                      " "
-                      {:tag :binary-op, :content ["AND"]}
-                      " "
-                      {:tag :key-value,
-                       :content
-                       [{:tag :symbol, :content ["a"]}
-                        ":"
-                        {:tag :string, :content ["\"" "a" "\""]}]}
-                      ")"]}
-                    ")"]}]}
-                ")"]}
-              ")"]}]}]
-    ;; ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))
-    (to-query q) => '((or (and (not (= (m :w) :b))
-                               ((and (= (m :w) "P")
-                                     (= (m :w) "M")
-                                     (= (m :a) "a"))))
-                          (and (= (m :w) :b)
-                               (not ((and (= (m :w) "\nP")
-                                          (= (m :w) "M")
-                                          (= (m :a) "a")))))))))
 
 (defn- rm-nil "Given a nested datastructure, returns the same but without nil"
   [s] (if (sequential? s)
@@ -385,6 +129,158 @@
   (rm-dup-par '((a (b) ((c))))) => '(a (b) (c)))
 
 (def compile-query (comp rm-dup-par rm-nil to-query))
+(def compile-q     (comp rm-dup-par rm-nil to-query parse-solr))
+
+(defn binary-op?
+  [x] (= (:tag x) :binary-op))
+
+(defn and?
+  [x] (and (binary-op? x) (= (:content x ) ["AND"])))
+
+(defn or?
+  [x] (and (binary-op? x) (= (:content x ) ["OR"])))
+
+(defmethod to-query :expr-par
+  [{s :content}]
+  (map (fn [x] (if (sequential? x)
+                (map to-query x)
+                (to-query x)))
+       (map (fn [x] (if (and (sequential? x) (some and? x))
+                     (cons (first (filter and? x))
+                           (remove and? x))
+                     x))
+            (if (some or? s)
+              (let [o (first (filter or? s))]
+                (cons o (take-nth 2 (partition-by or? s))))
+              [s]))))
+
+(fact "a:b OR c:d AND e:f"
+  (let [example-ng {:tag :root
+                    :content
+                    [{:tag :expr-par
+                      :content
+                      ["("
+                       {:tag :key-value,
+                        :content
+                        [{:tag :symbol, :content ["a"]}
+                         ":"
+                         {:tag :symbol, :content ["b"]}]}
+                       " "
+                       {:tag :binary-op, :content ["OR"]}
+                       " "
+                       {:tag :key-value,
+                        :content
+                        [{:tag :symbol, :content ["c"]}
+                         ":"
+                         {:tag :symbol, :content ["d"]}]}
+                       " "
+                       {:tag :binary-op, :content ["AND"]}
+                       " "
+                       {:tag :key-value,
+                        :content
+                        [{:tag :symbol, :content ["e"]}
+                         ":"
+                         {:tag :symbol, :content ["f"]}]}
+                       ")"]}]}]
+    (compile-query example-ng) => '(or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f)))))
+
+(fact "a:b AND b:c OR e:f AND g:d"
+  (let [example2 {:tag :root,
+                  :content
+                  [{:tag :expr-par,
+                    :content
+                    ["("
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["a"]}
+                       ":"
+                       {:tag :symbol, :content ["b"]}]}
+                     " "
+                     {:tag :binary-op, :content ["AND"]}
+                     " "
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["b"]}
+                       ":"
+                       {:tag :symbol, :content ["c"]}]}
+                     " "
+                     {:tag :binary-op, :content ["OR"]}
+                     " "
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["e"]}
+                       ":"
+                       {:tag :symbol, :content ["f"]}]}
+                     " "
+                     {:tag :binary-op, :content ["AND"]}
+                     " "
+                     {:tag :key-value,
+                      :content
+                      [{:tag :symbol, :content ["g"]}
+                       ":"
+                       {:tag :symbol, :content ["d"]}]}
+                     ")"]}]}]
+    (compile-query example2) => '(or (and (= (m :a) :b) (= (m :b) :c))
+                                     (and (= (m :e) :f) (= (m :g) :d)))))
+
+(defmethod to-query :expr-par-simple
+  [{q :content}]
+  (map to-query q))
+
+(fact "to-query :expr-par-simple"
+  (let [q {:tag :expr-par-simple,
+           :content
+           ["("
+            {:tag :key-value,
+             :content
+             [{:tag :symbol, :content ["a"]}
+              ":"
+              {:tag :symbol, :content ["b"]}]}
+            ")"]}]
+    (compile-query q)) => '(= (m :a) :b))
+
+(defmethod to-query :prefix-op
+  [{[q] :content}] (if-let [o ({"-" 'not} q)]
+                     o
+                     (throw (RuntimeException. (str "Unknown prefix operator: " q)))))
+
+(fact "to-query :prefix-op"
+  (to-query {:tag :prefix-op, :content ["-"]}) => 'not
+  (to-query {:tag :prefix-op, :content [:a]}) => (throws RuntimeException))
+
+(defmethod to-query :expr-prefixed
+  [{q :content}]
+  {:pre [(= 2 (count q))]}
+  (list (to-query (first  q))
+        (to-query (second q))))
+
+(fact "to-query - expr-prefixed"
+  (let [q {:tag :expr-prefixed,
+           :content
+           [{:tag :prefix-op, :content ["-"]}
+            {:tag :key-value,
+             :content
+             [{:tag :symbol, :content ["a"]}
+              ":"
+              {:tag :symbol, :content ["b"]}]}]}]
+    (to-query q) => '(not (= (m :a) :b))))
+
+(fact "-a:b"
+  (let [example-not {:tag :root,
+                     :content
+                     [{:tag :expr-par-simple,
+                       :content
+                       ["("
+                        {:tag :expr-prefixed,
+                         :content
+                         [{:tag :prefix-op, :content ["-"]}
+                          {:tag :key-value,
+                           :content
+                           [{:tag :symbol, :content ["a"]}
+                            ":"
+                            {:tag :symbol, :content ["b"]}]}]}
+                        ")"]}]}]
+    (compile-query example-not) => '(not (= (m :a) :b))))
 
 (fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
   (let [q {:tag :root,
@@ -494,8 +390,3 @@
                                              (= (m :w) "M")
                                              (= (m :a) "a")))))))
 
-(def compile-query2
-  (comp rm-dup-par
-        rm-nil
-        to-query
-        parse-solr))
