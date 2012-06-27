@@ -509,6 +509,12 @@
                                              (= (m :w) "M")
                                              (= (m :a) "a")))))))
 
+(def compile
+  (comp rm-dup-par
+        rm-nil
+        to-query
+        parse-solr))
+
 (ns solr-parse.eval
   (:use     [midje.sweet])
   (:use     [clojure.pprint     :only [pprint pp print-table]])
@@ -784,13 +790,6 @@
 (fact "or-ify"
   (and-or-ify '(a OR b AND c OR d)) => '(or a (and b c) d))
 
-(defn compile
-  [r] (rm-dup-par (rm-nil (to-query (parse-solr r)))))
 
-(def compile
-  (comp rm-dup-par
-        rm-nil
-        to-query
-        parse-solr))
 
 
