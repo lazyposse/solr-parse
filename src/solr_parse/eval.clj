@@ -129,7 +129,6 @@
   (rm-dup-par '((a (b) ((c))))) => '(a (b) (c)))
 
 (def compile-query (comp rm-dup-par rm-nil to-query))
-(def compile-q     (comp rm-dup-par rm-nil to-query parse-solr))
 
 (defn binary-op?
   [x] (= (:tag x) :binary-op))
@@ -390,3 +389,10 @@
                                              (= (m :w) "M")
                                              (= (m :a) "a")))))))
 
+
+;; Our common function to eval and parse our solr query
+(def compile-q (comp compile-query parse-solr))
+
+(fact
+  (compile-q "a:b AND c:d") => '(and (= (m :a) :b) (= (m :c) :d))
+  (compile-q "a:b AND c:d AND e:f") => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f)))
