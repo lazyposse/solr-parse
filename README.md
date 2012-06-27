@@ -29,6 +29,11 @@ solr-parse.eval> (compile-query "(a:b AND c:d) OR (e:f) OR g:h")
 (or (and (= (m :a) :b) (= (m :c) :d)) (= (m :e) :f) (= (m :g) :h))
 ```
 
+In this example:
+- `a:b`, `c:d`, `e:f`, and `g:h` are some key value pair which hold meaning in your context.
+- m represents a map which also hold meaning for the overall data structure to be viewed as a function.
+
+
 ## License
 
 Copyright © 2012 commiters
