@@ -389,11 +389,14 @@
                                                   (= (m :w) "M")
                                                   (= (m :a) "a")))))))
 
-
-;; Our common function to eval and parse our solr query
-(defn compile-query
+(defn compile-query "Compile the query into a data structure representing the function"
   [q]
-  (cons 'fn  (cons '[m] (list ((comp compile-solr-query parse-solr) q)))))
+  (->> q
+       parse-solr
+       compile-solr-query
+       list
+       (cons '[m])
+       (cons 'fn)))
 
 (fact "compile-query - without parenthesis"
   (compile-query "a:b AND c:d")               => '(fn [m] (and (= (m :a) :b) (= (m :c) :d)))
