@@ -391,20 +391,22 @@
 
 
 ;; Our common function to eval and parse our solr query
-(def compile-query (comp compile-solr-query parse-solr))
+(defn compile-query
+  [q]
+  (cons 'fn  (cons '[m] (list ((comp compile-solr-query parse-solr) q)))))
 
 (fact "compile-query - without parenthesis"
-  (compile-query "a:b AND c:d")               => '(and (= (m :a) :b) (= (m :c) :d))
-  (compile-query "a:b AND c:d AND e:f")       => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f))
-  (compile-query "a:b AND c:d OR e:f")        => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                                      (= (m :e) :f))
-  (compile-query "a:b AND c:d OR e:f OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                                      (= (m :e) :f)
-                                                      (= (m :g) :h)))
+  (compile-query "a:b AND c:d")               => '(fn [m] (and (= (m :a) :b) (= (m :c) :d)))
+  (compile-query "a:b AND c:d AND e:f")       => '(fn [m] (and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f)))
+  (compile-query "a:b AND c:d OR e:f")        => '(fn [m] (or (and (= (m :a) :b) (= (m :c) :d))
+                                                             (= (m :e) :f)))
+  (compile-query "a:b AND c:d OR e:f OR g:h") => '(fn [m] (or (and (= (m :a) :b) (= (m :c) :d))
+                                                             (= (m :e) :f)
+                                                             (= (m :g) :h))))
 
 (fact "compile-query - with parenthesis"
-  (compile-query "(a:b AND c:d) OR (e:f)")        => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                                          (= (m :e) :f))
-  (compile-query "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
-                                                          (= (m :e) :f)
-                                                          (= (m :g) :h)))
+  (compile-query "(a:b AND c:d) OR (e:f)")        => '(fn [m] (or (and (= (m :a) :b) (= (m :c) :d))
+                                                                 (= (m :e) :f)))
+  (compile-query "(a:b AND c:d) OR (e:f) OR g:h") => '(fn [m] (or (and (= (m :a) :b) (= (m :c) :d))
+                                                                 (= (m :e) :f)
+                                                                 (= (m :g) :h))))
