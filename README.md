@@ -26,7 +26,7 @@ For example:
 
 ``` clj
 solr-parse.eval> (compile-query "(a:b AND c:d) OR (e:f) OR g:h")
-(or (and (= (m :a) :b) (= (m :c) :d)) (= (m :e) :f) (= (m :g) :h))
+'(fn [m] (or (and (= (m :a) :b) (= (m :c) :d)) (= (m :e) :f) (= (m :g) :h)))
 ```
 
 In this example:
