@@ -1,10 +1,10 @@
 (ns solr-parse.eval
-  (:use     [midje.sweet])
-  (:use     [clojure.pprint       :only [pprint pp print-table]])
-  (:use     [clojure.repl         :only [doc find-doc dir]])
-  (:use     [clojure.java.javadoc :only [javadoc]])
-  (:use     [solr-parse.parser    :only [parse-solr example-solr-query]])
-  (:require [clojure.string :as s]))
+  (:use     [midje.sweet]
+            [clojure.pprint       :only [pprint pp print-table]]
+            [clojure.repl         :only [doc find-doc dir]]
+            [clojure.java.javadoc :only [javadoc]])
+  (:require [solr-parse.parser    :as p]
+            [clojure.string :as s]))
 
 ;; ala 4 clj ;;;
 ;;; A expression evaluator
@@ -392,7 +392,7 @@
 (defn compile-query
   "Compile the query into a data structure representing the function"
   ([f q]
-     (compile-solr-query f (parse-solr q))))
+     (compile-solr-query f (p/parse-solr q))))
 
 (fact "compile-query - without parenthesis"
   (compile-query default-transco "a:b AND c:d")               => '(and (= (m :a) :b) (= (m :c) :d))
