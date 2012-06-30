@@ -8,13 +8,13 @@
 
 (def to-query +) ;; hack to be able to redefine a multimethod dispatch
 
-(defn default-transco-fn
+(defn default-transco-fn "Some dummy function to show one way of using compile-query"
   [left right] (list '= (list 'm left) right))
 
 (fact "default-transco-fn"
   (default-transco-fn :a "b") => '(= (m :a) "b"))
 
-(defmulti to-query "Dispatch on the :tag flag"
+(defmulti to-query "Compile the query according the :tag nature."
   (fn [f x] (cond (map? x)       (:tag x)
                  (#{"(" ")"} x) :par
                  (s/blank? x)   :blank)))
@@ -22,32 +22,32 @@
 (defmethod to-query :par
   [f c] nil)
 
-(fact "to-query :par"
+(fact "to-query :par - Deal with parenthesis character."
   (to-query default-transco-fn "(") => nil
   (to-query default-transco-fn ")") => nil)
 
 (defmethod to-query :blank
   [f _] nil)
 
-(fact "to-query :blank"
+(fact "to-query - deal with :blank character."
   (to-query default-transco-fn " ") => nil)
 
 (defmethod to-query :symbol
   [f {[x] :content}] (keyword x))
 
-(fact "to-query :symbol"
+(fact "to-query :symbol - deal with symbol (Ex: a:b, a or b are symbols here)"
   (to-query default-transco-fn {:tag :symbol :content ["a"]}) => :a)
 
 (defmethod to-query :string
   [f {[_ q _] :content}] q)
 
-(fact "to-query :string"
+(fact "to-query :string, deal with string character (Ex: b:\"a\") "
   (to-query default-transco-fn {:tag :string, :content ["\"" "a" "\""]}) => "a")
 
 (defmethod to-query :key-value
   [f {[x _ y] :content}] (f (to-query f x) (to-query f y)))
 
-(fact "to-query :key-value"
+(fact "to-query :key-value, deal with a key:value representation (Ex: a:b)"
   (to-query default-transco-fn {:tag :key-value,
                              :content
                              [ {:tag :symbol, :content ["b"]} ":" {:tag :symbol, :content ["2"]}]})
@@ -60,7 +60,7 @@
     r
     (throw (Exception.))))
 
-(fact "to-query :binary-op"
+(fact "to-query :binary-op, deal with binary operation (Ex: a:b AND c:d OR x:y)"
   (to-query default-transco-fn {:tag :binary-op, :content ["AND"]}) => 'and
   (to-query default-transco-fn {:tag :binary-op, :content ["OR"]}) => 'or
   (to-query default-transco-fn {:tag :binary-op, :content ["X"]}) => (throws Exception))
@@ -79,7 +79,6 @@
               {:tag :string, :content ["\"" "b" "\""]}]}]}]
     (to-query default-transco-fn q) => '((= (m :a) "b"))))
 
-
 (defn- rm-nil "Given a nested datastructure, returns the same but without nil"
   [s] (if (sequential? s)
         (map rm-nil (remove nil? s))
@@ -91,7 +90,7 @@
   (rm-nil 'a) => 'a
   (rm-nil '(a nil a nil)) => '(a a))
 
-(defn- dup-par?
+(defn- dup-par? "Is there some duplicated parenthesis in the form s?"
   [s] (and (sequential? s)
            (sequential? (first s))
            (not (second s))))
@@ -101,7 +100,7 @@
   (dup-par? '(:a)) => false
   (dup-par? '((:a))) => true)
 
-(defn- rm-dup-par-1 "given a form 'peel' its parens til it only one level"
+(defn- rm-dup-par-1 "Given a datastructure, returns the same but without needless parenthesis (no recursion)."
   [s] (if (dup-par? s)
         (rm-dup-par-1 (first s))
         s))
@@ -121,19 +120,19 @@
 (fact "rm-dup-par"
   (rm-dup-par '((a (b) ((c))))) => '(a (b) (c)))
 
-(defn compile-solr-query
+(defn compile-solr-query "Compile a solr query into a clojure function."
   [f q]
   (-> (to-query f q)
       rm-nil
       rm-dup-par))
 
-(defn binary-op?
+(defn binary-op? "Is x a binary operator ?"
   [x] (= (:tag x) :binary-op))
 
-(defn and?
+(defn and? "Is x a and operator?"
   [x] (and (binary-op? x) (= (:content x ) ["AND"])))
 
-(defn or?
+(defn or? "Is x a or operator?"
   [x] (and (binary-op? x) (= (:content x ) ["OR"])))
 
 (defmethod to-query :expr-par
@@ -223,7 +222,7 @@
   [f {q :content}]
   (map (partial to-query f) q))
 
-(fact "to-query :expr-par-simple"
+(fact "to-query :expr-par-simple - Ex (a:b)"
   (let [q {:tag :expr-par-simple,
            :content
            ["("
@@ -240,7 +239,7 @@
                      o
                      (throw (RuntimeException. (str "Unknown prefix operator: " q)))))
 
-(fact "to-query :prefix-op"
+(fact "to-query :prefix-op - -a"
   (to-query default-transco-fn {:tag :prefix-op, :content ["-"]}) => 'not
   (to-query default-transco-fn {:tag :prefix-op, :content [:a]}) => (throws RuntimeException))
 
@@ -250,7 +249,7 @@
   (list (to-query f (first  q))
         (to-query f (second q))))
 
-(fact "to-query - expr-prefixed"
+(fact "to-query - expr-prefixed - (-a:b)"
   (let [q {:tag :expr-prefixed,
            :content
            [{:tag :prefix-op, :content ["-"]}
@@ -413,7 +412,7 @@
 (fact "reversed-transco"
   (reversed-transco :a "b") => '(= (m "b") :a))
 
-(fact "compile-query - reversed-transco"
+(fact "compile-query - with parenthesis"
   (compile-query reversed-transco "(a:b AND c:d) OR (e:f)")        => '(or (and (= (m :b) :a) (= (m :d) :c))
                                                                                    (= (m :f) :e))
   (compile-query reversed-transco "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :b) :a) (= (m :d) :c))
