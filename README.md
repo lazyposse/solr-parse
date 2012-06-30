@@ -1,6 +1,6 @@
 # solr-parse
 
-I'm just a function really (compile-solr).
+I'm just a function really (`compile-query`).
 
 ## dependency
 
