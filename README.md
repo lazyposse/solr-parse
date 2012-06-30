@@ -2,6 +2,10 @@
 
 I'm just a function really (`compile-query`).
 
+## Code
+
+http://clojure-consulting.github.com/solr-parse/docs/uberdoc.html
+
 ## dependency
 
 In your `project.clj`, in the dependency key, add this:
