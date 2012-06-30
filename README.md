@@ -28,7 +28,8 @@ Given a function `default-transco`
 
 ``` clj
 
-This function takes 2 parameters and gives a certain structure.
+This function takes 2 parameters and returns a list of data.
+
 ```
 (fact (default-transco :a "b") => '(= (m :a) "b"))
 ```
@@ -37,7 +38,20 @@ When compiling the query with this function:
 
 ``` clj
 (fact
-  (compile-query default-transco "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d)) (= (m :e) :f) (= (m :g) :h)))
+  (compile-query default-transco "(a:b AND c:\"d\") OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) "d")) (= (m :e) :f) (= (m :g) :h)))
+```
+
+Here is another function and the result:
+
+``` clj
+(fact (reverse-transco :a "b") => '(= (m "b) :a))
+```
+
+Here is the result of the same query with another function
+
+``` clj
+(fact
+  (compile-query reverse-transco "(a:b AND c:\"d\") OR (e:f) OR g:h") => '(or (and (= (m :b) :a) (= (m "d") :c)) (= (m :f) :e) (= (m :h) :g)))
 ```
 
 In this example:
