@@ -43,7 +43,7 @@ Here is another function `reverse-transco`:
 ``` clj
 (fact
   (reverse-transco :a "b")
-    => '(= (m "b) :a))
+    => '(= (m "b") :a))
 ```
 
 And the same query:
@@ -55,8 +55,8 @@ And the same query:
 ```
 
 In this example:
-- `a:b`, `c:d`, `e:f`, and `g:h` are some key value pair which hold meaning in your context.
-- m represents a map which also hold meaning for the overall data structure to be viewed as a function.
+- `a:b`, `c:"d"`, `e:f`, and `g:h` are some key value pair which hold meaning in your context.
+- m represents something in your `default-transco` or `reverse-transco`
 
 ## License
 
