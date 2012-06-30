@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Solr-parse by clojure-consulting</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Solr-parse</h1>
+        <p>compile a solr query into an equivalent clojure function</p>
+
+        <p class="view"><a href="https://github.com/clojure-consulting/solr-parse">View the Project on GitHub <small>clojure-consulting/solr-parse</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/clojure-consulting/solr-parse/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/clojure-consulting/solr-parse/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/clojure-consulting/solr-parse">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>solr-parse</h1>
+
+<p>I'm just a function really (<code>compile-query</code>).</p>
+
+<h2>dependency</h2>
+
+<p>In your <code>project.clj</code>, in the dependency key, add this:</p>
+
+<div class="highlight">
+<pre><span class="p">[</span><span class="nv">solr-parse</span> <span class="mf">0.1</span><span class="nv">.0-SNAPSHOT</span><span class="p">]</span>
+</pre>
+</div>
+
+
+<p>Then</p>
+
+<div class="highlight">
+<pre><span class="nv">lein</span> <span class="nv">deps</span>
+</pre>
+</div>
+
+
+<p>Then you're good</p>
+
+<h2>Usage</h2>
+
+<p>The idea is to be able to compute, given a function and a solr query, a clojure function able to query a clj data store.</p>
+
+<p>For example, given a function 'default-transco' which takes 2 parameters and returns a list of data:</p>
+
+<div class="highlight">
+<pre><span class="p">(</span><span class="nf">fact</span>
+  <span class="p">(</span><span class="nf">default-transco</span> <span class="ss">:a</span> <span class="s">"b"</span><span class="p">)</span>
+    <span class="nv">=&gt;</span> <span class="o">'</span><span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:a</span><span class="p">)</span> <span class="s">"b"</span><span class="p">))</span>
+</pre>
+</div>
+
+
+<p>And a query:</p>
+
+<div class="highlight">
+<pre><span class="p">(</span><span class="nf">fact</span>
+  <span class="p">(</span><span class="nf">compile-query</span> <span class="nv">default-transco</span> <span class="s">"(a:b AND c:\"d\") OR (e:f) OR g:h"</span><span class="p">)</span>
+    <span class="nv">=&gt;</span> <span class="o">'</span><span class="p">(</span><span class="nb">or </span><span class="p">(</span><span class="nb">and </span><span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:a</span><span class="p">)</span> <span class="ss">:b</span><span class="p">)</span> <span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:c</span><span class="p">)</span> <span class="s">"d"</span><span class="p">))</span> <span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:e</span><span class="p">)</span> <span class="ss">:f</span><span class="p">)</span> <span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:g</span><span class="p">)</span> <span class="ss">:h</span><span class="p">)))</span>
+</pre>
+</div>
+
+
+<p>Here is another function <code>reverse-transco</code>:</p>
+
+<div class="highlight">
+<pre><span class="p">(</span><span class="nf">fact</span>
+  <span class="p">(</span><span class="nf">reverse-transco</span> <span class="ss">:a</span> <span class="s">"b"</span><span class="p">)</span>
+    <span class="nv">=&gt;</span> <span class="o">'</span><span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="s">"b"</span><span class="p">)</span> <span class="ss">:a</span><span class="p">))</span>
+</pre>
+</div>
+
+
+<p>And the same query:</p>
+
+<div class="highlight">
+<pre><span class="p">(</span><span class="nf">fact</span>
+  <span class="p">(</span><span class="nf">compile-query</span> <span class="nv">reverse-transco</span> <span class="s">"(a:b AND c:\"d\") OR (e:f) OR g:h"</span><span class="p">)</span>
+    <span class="nv">=&gt;</span> <span class="o">'</span><span class="p">(</span><span class="nb">or </span><span class="p">(</span><span class="nb">and </span><span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:b</span><span class="p">)</span> <span class="ss">:a</span><span class="p">)</span> <span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="s">"d"</span><span class="p">)</span> <span class="ss">:c</span><span class="p">))</span> <span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:f</span><span class="p">)</span> <span class="ss">:e</span><span class="p">)</span> <span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">m</span> <span class="ss">:h</span><span class="p">)</span> <span class="ss">:g</span><span class="p">)))</span>
+</pre>
+</div>
+
+
+<p>In this example:</p>
+
+<ul>
+<li>
+<code>a:b</code>, <code>c:"d"</code>, <code>e:f</code>, and <code>g:h</code> are some key value pair which hold meaning in your context.</li>
+<li>m represents something in your <code>default-transco</code> or <code>reverse-transco</code>
+</li>
+</ul><h2>License</h2>
+
+<p>Copyright © 2012 commiters</p>
+
+<p>Distributed under the Eclipse Public License, the same as Clojure.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/clojure-consulting">clojure-consulting</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
