@@ -1,6 +1,6 @@
 # solr-parse
 
-I'm just a function really (compile-solr).
+I'm just a function really (`compile-query`).
 
 ## dependency
 
@@ -20,19 +20,43 @@ Then you're good
 
 ## Usage
 
-The idea behind the scene is to be able to feed some solr query and retrieve a list of data representing the same query.
+The idea is to be able to compute, given a function and a solr query, a clojure function able to query a clj data store.
 
-For example:
+For example, given a function 'default-transco' which takes 2 parameters and returns a list of data:
 
 ``` clj
-solr-parse.eval> (compile-query "(a:b AND c:d) OR (e:f) OR g:h")
-'(fn [m] (or (and (= (m :a) :b) (= (m :c) :d)) (= (m :e) :f) (= (m :g) :h)))
+(fact
+  (default-transco :a "b")
+    => '(= (m :a) "b"))
+```
+
+And a query:
+
+``` clj
+(fact
+  (compile-query default-transco "(a:b AND c:\"d\") OR (e:f) OR g:h")
+    => '(or (and (= (m :a) :b) (= (m :c) "d")) (= (m :e) :f) (= (m :g) :h)))
+```
+
+Here is another function `reverse-transco`:
+
+``` clj
+(fact
+  (reverse-transco :a "b")
+    => '(= (m "b") :a))
+```
+
+And the same query:
+
+``` clj
+(fact
+  (compile-query reverse-transco "(a:b AND c:\"d\") OR (e:f) OR g:h")
+    => '(or (and (= (m :b) :a) (= (m "d") :c)) (= (m :f) :e) (= (m :h) :g)))
 ```
 
 In this example:
-- `a:b`, `c:d`, `e:f`, and `g:h` are some key value pair which hold meaning in your context.
-- m represents a map which also hold meaning for the overall data structure to be viewed as a function.
-
+- `a:b`, `c:"d"`, `e:f`, and `g:h` are some key value pair which hold meaning in your context.
+- m represents something in your `default-transco` or `reverse-transco`
 
 ## License
 

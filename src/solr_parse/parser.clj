@@ -1,19 +1,11 @@
 (ns solr-parse.parser
-  (:use     [midje.sweet])
-  (:use     [clojure.pprint     :only [pprint pp print-table]])
-  (:use     [clojure.string     :only [split join split-lines replace-first] :as s])
-  (:use     [clojure.repl       :only [doc find-doc]])
-  (:use     [clojure.java.javadoc       :only [javadoc]])
-  (:use     [clojure.tools.trace :only [trace deftrace trace-forms trace-ns untrace-ns trace-vars]])
-  (:use     [clojure.walk       :as w])
-  (:use     [net.cgrand.parsley       :as p])
-  (:require [clojure.xml        :as xml])
-  (:require [clojure.set        :as set])
-  (:require [clj-http.client    :as client])
-  (:require [clojure.java.shell :as sh])
-  (:require [clojure.java.io    :as io])
-  (:require [clojure.reflect    :as ref])
-  (:require [clojure.inspector  :as ins])
+  (:use     [midje.sweet]
+            [clojure.pprint       :only [pprint pp print-table]]
+            [clojure.repl         :only [doc find-doc]]
+            [clojure.java.javadoc :only [javadoc]]
+            [clojure.tools.trace  :only [trace deftrace trace-forms trace-ns untrace-ns trace-vars]])
+  (:require [net.cgrand.parsley :as p]
+            [clojure.string     :as s])
   (:import  [java.io     File StreamTokenizer]))
 
 (defn esc
