@@ -419,3 +419,19 @@
   (compile-query reversed-transco "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :b) :a) (= (m :d) :c))
                                                                                    (= (m :f) :e)
                                                                                    (= (m :h) :g)))
+
+(defn mapping
+  [l r]
+  (let [m {:a :b
+           :b :d}]
+    (= (m l) r)))
+
+(fact
+  (mapping :a :b) => truthy
+  (mapping :a :d) => falsey
+  (mapping :b :d) => truthy
+  (mapping :b :a) => falsey)
+
+(fact "compile-query - mapping"
+  (compile-query mapping "a:b AND b:d") => '(and true true)
+  (compile-query mapping "a:b AND a:d") => '(and true false))
