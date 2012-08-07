@@ -6,16 +6,13 @@
   (:require [solr-parse.parser    :as p]
             [clojure.string :as s]))
 
-;; ala 4 clj ;;;
-;;; A expression evaluator
-
 (def to-query +) ;; hack to be able to redefine a multimethod dispatch
 
-(defn default-transco
+(defn default-transco-fn
   [left right] (list '= (list 'm left) right))
 
-(fact "default-transco"
-  (default-transco :a "b") => '(= (m :a) "b"))
+(fact "default-transco-fn"
+  (default-transco-fn :a "b") => '(= (m :a) "b"))
 
 (defmulti to-query "Dispatch on the :tag flag"
   (fn [f x] (cond (map? x)       (:tag x)
@@ -26,32 +23,32 @@
   [f c] nil)
 
 (fact "to-query :par"
-  (to-query default-transco "(") => nil
-  (to-query default-transco ")") => nil)
+  (to-query default-transco-fn "(") => nil
+  (to-query default-transco-fn ")") => nil)
 
 (defmethod to-query :blank
   [f _] nil)
 
 (fact "to-query :blank"
-  (to-query default-transco " ") => nil)
+  (to-query default-transco-fn " ") => nil)
 
 (defmethod to-query :symbol
   [f {[x] :content}] (keyword x))
 
 (fact "to-query :symbol"
-  (to-query default-transco {:tag :symbol :content ["a"]}) => :a)
+  (to-query default-transco-fn {:tag :symbol :content ["a"]}) => :a)
 
 (defmethod to-query :string
   [f {[_ q _] :content}] q)
 
 (fact "to-query :string"
-  (to-query default-transco {:tag :string, :content ["\"" "a" "\""]}) => "a")
+  (to-query default-transco-fn {:tag :string, :content ["\"" "a" "\""]}) => "a")
 
 (defmethod to-query :key-value
   [f {[x _ y] :content}] (f (to-query f x) (to-query f y)))
 
 (fact "to-query :key-value"
-  (to-query default-transco {:tag :key-value,
+  (to-query default-transco-fn {:tag :key-value,
                              :content
                              [ {:tag :symbol, :content ["b"]} ":" {:tag :symbol, :content ["2"]}]})
   => '(= (m :b) :2))
@@ -64,9 +61,9 @@
     (throw (Exception.))))
 
 (fact "to-query :binary-op"
-  (to-query default-transco {:tag :binary-op, :content ["AND"]}) => 'and
-  (to-query default-transco {:tag :binary-op, :content ["OR"]}) => 'or
-  (to-query default-transco {:tag :binary-op, :content ["X"]}) => (throws Exception))
+  (to-query default-transco-fn {:tag :binary-op, :content ["AND"]}) => 'and
+  (to-query default-transco-fn {:tag :binary-op, :content ["OR"]}) => 'or
+  (to-query default-transco-fn {:tag :binary-op, :content ["X"]}) => (throws Exception))
 
 (defmethod to-query :root
   [f {c :content}]
@@ -80,7 +77,7 @@
              [{:tag :symbol, :content ["a"]}
               ":"
               {:tag :string, :content ["\"" "b" "\""]}]}]}]
-    (to-query default-transco q) => '((= (m :a) "b"))))
+    (to-query default-transco-fn q) => '((= (m :a) "b"))))
 
 
 (defn- rm-nil "Given a nested datastructure, returns the same but without nil"
@@ -181,7 +178,7 @@
                          ":"
                          {:tag :symbol, :content ["f"]}]}
                        ")"]}]}]
-    (compile-solr-query default-transco example-ng) => '(or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f)))))
+    (compile-solr-query default-transco-fn example-ng) => '(or (= (m :a) :b) (and (= (m :c) :d) (= (m :e) :f)))))
 
 (fact "a:b AND b:c OR e:f AND g:d"
   (let [example2 {:tag :root,
@@ -219,7 +216,7 @@
                        ":"
                        {:tag :symbol, :content ["d"]}]}
                      ")"]}]}]
-    (compile-solr-query default-transco example2) => '(or (and (= (m :a) :b) (= (m :b) :c))
+    (compile-solr-query default-transco-fn example2) => '(or (and (= (m :a) :b) (= (m :b) :c))
                                                           (and (= (m :e) :f) (= (m :g) :d)))))
 
 (defmethod to-query :expr-par-simple
@@ -236,7 +233,7 @@
               ":"
               {:tag :symbol, :content ["b"]}]}
             ")"]}]
-    (compile-solr-query default-transco q)) => '(= (m :a) :b))
+    (compile-solr-query default-transco-fn q)) => '(= (m :a) :b))
 
 (defmethod to-query :prefix-op
   [f {[q] :content}] (if-let [o ({"-" 'not} q)]
@@ -244,8 +241,8 @@
                      (throw (RuntimeException. (str "Unknown prefix operator: " q)))))
 
 (fact "to-query :prefix-op"
-  (to-query default-transco {:tag :prefix-op, :content ["-"]}) => 'not
-  (to-query default-transco {:tag :prefix-op, :content [:a]}) => (throws RuntimeException))
+  (to-query default-transco-fn {:tag :prefix-op, :content ["-"]}) => 'not
+  (to-query default-transco-fn {:tag :prefix-op, :content [:a]}) => (throws RuntimeException))
 
 (defmethod to-query :expr-prefixed
   [f {q :content}]
@@ -262,7 +259,7 @@
              [{:tag :symbol, :content ["a"]}
               ":"
               {:tag :symbol, :content ["b"]}]}]}]
-    (to-query default-transco q) => '(not (= (m :a) :b))))
+    (to-query default-transco-fn q) => '(not (= (m :a) :b))))
 
 (fact "-a:b"
   (let [example-not {:tag :root,
@@ -279,7 +276,7 @@
                             ":"
                             {:tag :symbol, :content ["b"]}]}]}
                         ")"]}]}]
-    (compile-solr-query default-transco example-not) => '(not (= (m :a) :b))))
+    (compile-solr-query default-transco-fn example-not) => '(not (= (m :a) :b))))
 
 (fact "IT - ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))"
   (let [q {:tag :root,
@@ -380,7 +377,7 @@
                 ")"]}
               ")"]}]}]
     ;; ((-w:b AND ((w:\"P\" AND w:\"M\" a:\"a\"))) OR (w:b AND -((w:\"\nP\" AND w:\"M\" AND a:\"a\"))))
-    (compile-solr-query default-transco q) => '(or (and (not (= (m :w) :b))
+    (compile-solr-query default-transco-fn q) => '(or (and (not (= (m :w) :b))
                                                         (and (= (m :w) "P")
                                                              (= (m :w) "M")
                                                              (= (m :a) "a")))
@@ -395,29 +392,46 @@
      (compile-solr-query f (p/parse-solr q))))
 
 (fact "compile-query - without parenthesis"
-  (compile-query default-transco "a:b AND c:d")               => '(and (= (m :a) :b) (= (m :c) :d))
-  (compile-query default-transco "a:b AND c:d AND e:f")       => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f))
-  (compile-query default-transco "a:b AND c:d OR e:f")        => '(or (and (= (m :a) :b) (= (m :c) :d))
+  (compile-query default-transco-fn "a:b AND c:d")               => '(and (= (m :a) :b) (= (m :c) :d))
+  (compile-query default-transco-fn "a:b AND c:d AND e:f")       => '(and (= (m :a) :b) (= (m :c) :d) (= (m :e) :f))
+  (compile-query default-transco-fn "a:b AND c:d OR e:f")        => '(or (and (= (m :a) :b) (= (m :c) :d))
                                                                       (= (m :e) :f))
-  (compile-query default-transco "a:b AND c:d OR e:f OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
+  (compile-query default-transco-fn "a:b AND c:d OR e:f OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
                                                                       (= (m :e) :f)
                                                                       (= (m :g) :h)))
 
 (fact "compile-query - with parenthesis"
-  (compile-query default-transco "(a:b AND c:d) OR (e:f)")        => '(or (and (= (m :a) :b) (= (m :c) :d))
+  (compile-query default-transco-fn "(a:b AND c:d) OR (e:f)")        => '(or (and (= (m :a) :b) (= (m :c) :d))
                                                                           (= (m :e) :f))
-  (compile-query default-transco "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
+  (compile-query default-transco-fn "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :a) :b) (= (m :c) :d))
                                                                           (= (m :e) :f)
                                                                           (= (m :g) :h)))
-(defn default-transco-reversed
+
+(defn reversed-transco
   [left right] (list '= (list 'm right) left))
 
-(fact "default-transco-reversed"
-  (default-transco-reversed :a "b") => '(= (m "b") :a))
+(fact "reversed-transco"
+  (reversed-transco :a "b") => '(= (m "b") :a))
 
-(fact "compile-query - with parenthesis"
-  (compile-query default-transco-reversed "(a:b AND c:d) OR (e:f)")        => '(or (and (= (m :b) :a) (= (m :d) :c))
+(fact "compile-query - reversed-transco"
+  (compile-query reversed-transco "(a:b AND c:d) OR (e:f)")        => '(or (and (= (m :b) :a) (= (m :d) :c))
                                                                                    (= (m :f) :e))
-  (compile-query default-transco-reversed "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :b) :a) (= (m :d) :c))
+  (compile-query reversed-transco "(a:b AND c:d) OR (e:f) OR g:h") => '(or (and (= (m :b) :a) (= (m :d) :c))
                                                                                    (= (m :f) :e)
                                                                                    (= (m :h) :g)))
+
+(defn mapping
+  [l r]
+  (let [m {:a :b
+           :b :d}]
+    (= (m l) r)))
+
+(fact
+  (mapping :a :b) => truthy
+  (mapping :a :d) => falsey
+  (mapping :b :d) => truthy
+  (mapping :b :a) => falsey)
+
+(fact "compile-query - mapping"
+  (compile-query mapping "a:b AND b:d") => '(and true true)
+  (compile-query mapping "a:b AND a:d") => '(and true false))

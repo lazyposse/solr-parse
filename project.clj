@@ -8,5 +8,5 @@
                  [com.google.code.javaparser/javaparser "1.0.8"]
                  [org.clojure/tools.trace               "0.7.3"]
                  [net.cgrand/parsley                    "0.9.1"]]
-  :description "parse a solr query to an equivalent clojure function"
+  :description "Compile a solr query to an equivalent clojure function."
   :repositories {"stuart" "http://stuartsierra.com/maven2"})
