@@ -1,6 +1,6 @@
 # solr-parse
 
-I'm just a function really (`compile-query`).
+Turns Solr queries in Clojure predicates.
 
 ## What's this?
 
