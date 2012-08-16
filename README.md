@@ -1,6 +1,6 @@
 # solr-parse
 
-Turns Solr queries in Clojure predicates.
+Turns **Solr queries** into **Clojure predicates**.
 
 ## What's this?
 
