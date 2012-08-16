@@ -2,7 +2,6 @@
 
 Turns Solr queries into Clojure predicates.
 
-
 ## What's this?
 
 It's probably nothing interesting for you, really!
