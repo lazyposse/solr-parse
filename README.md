@@ -2,6 +2,18 @@
 
 I'm just a function really (`compile-query`).
 
+## What's this?
+
+It's probably nothing interesting for you, really!
+
+And it's also half-bake.
+
+Take a look only if you want to see an usage of Christophe Grand's
+parser: (parsley)[https://github.com/cgrand/parsley].
+
+It takes a Solr query, and output a Clojure predicate that takes an
+object and return true if it matches the query.
+
 ## dependency
 
 In your `project.clj`, in the dependency key, add this:
